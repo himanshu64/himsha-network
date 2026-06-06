@@ -1,0 +1,12 @@
+{
+  "name": "HIMSHA Network",
+  "short_name": "HIMSHA",
+  "description": "Experimental Bitcoin programmability layer proven by ZK receipts.",
+  "start_url": "/himsha-network/",
+  "display": "standalone",
+  "background_color": "#0A0D14",
+  "theme_color": "#0A0D14",
+  "icons": [
+    { "src": "/himsha-network/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}
