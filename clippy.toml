@@ -1,0 +1,4 @@
+# HIMSHA has many instruction-builder functions that legitimately take one
+# argument per account/field, so raise this single threshold. All other clippy
+# lints remain strict (CI runs `cargo clippy --workspace -- -D warnings`).
+too-many-arguments-threshold = 12

@@ -59,11 +59,19 @@ pub struct Follower {
 }
 
 impl Follower {
-    pub fn new(state: NodeState, registry: Arc<Mutex<ProgramRegistry>>, primary_url: String) -> Self {
+    pub fn new(
+        state: NodeState,
+        registry: Arc<Mutex<ProgramRegistry>>,
+        primary_url: String,
+    ) -> Self {
         Self {
-            state, registry, primary_url: Mutex::new(primary_url),
+            state,
+            registry,
+            primary_url: Mutex::new(primary_url),
             higher_peers: Vec::new(),
-            election: None, members: Vec::new(), self_id: String::new(),
+            election: None,
+            members: Vec::new(),
+            self_id: String::new(),
             client: reqwest::Client::new(),
         }
     }
@@ -89,7 +97,10 @@ impl Follower {
 
     /// Poll the primary forever, replicating new blocks (pure replica, never promotes).
     pub async fn run(self, poll: Duration) {
-        info!("follower replicating from primary {} (poll {poll:?})", self.primary_url.lock().unwrap());
+        info!(
+            "follower replicating from primary {} (poll {poll:?})",
+            self.primary_url.lock().unwrap()
+        );
         let _ = self.run_until_promote(poll, None).await;
     }
 
@@ -98,7 +109,11 @@ impl Follower {
     /// itself to sequencer. With `max_misses == None` it replicates forever and
     /// never promotes. Returns `true` only on a promotion decision.
     pub async fn run_until_promote(&self, poll: Duration, max_misses: Option<u32>) -> bool {
-        info!("follower replicating from {} (poll {poll:?}, failover={:?})", self.primary_url.lock().unwrap().clone(), max_misses);
+        info!(
+            "follower replicating from {} (poll {poll:?}, failover={:?})",
+            self.primary_url.lock().unwrap().clone(),
+            max_misses
+        );
         let mut misses: u32 = 0;
         loop {
             match self.sync_once().await {
@@ -116,7 +131,9 @@ impl Follower {
                     if leader != current && leader != self.self_id {
                         info!("re-pointing follow target to leader {leader} (term {term})");
                         *self.primary_url.lock().unwrap() = leader.clone();
-                        if let Some(e) = &self.election { e.lock().unwrap().observe_leader(term, &leader); }
+                        if let Some(e) = &self.election {
+                            e.lock().unwrap().observe_leader(term, &leader);
+                        }
                         misses = 0;
                         tokio::time::sleep(poll).await;
                         continue;
@@ -132,7 +149,9 @@ impl Follower {
                     wins_election(true, higher_alive)
                 };
                 if promote {
-                    if let Some(e) = &self.election { e.lock().unwrap().become_leader(&self.self_id); }
+                    if let Some(e) = &self.election {
+                        e.lock().unwrap().become_leader(&self.self_id);
+                    }
                     warn!("promoting to sequencer");
                     return true;
                 }
@@ -146,8 +165,13 @@ impl Follower {
     /// majority of the member set and may promote. Partition-safe: a minority side
     /// can never reach majority.
     async fn elect(&self) -> bool {
-        let election = match &self.election { Some(e) => e, None => return false };
-        if self.members.is_empty() { return false; }
+        let election = match &self.election {
+            Some(e) => e,
+            None => return false,
+        };
+        if self.members.is_empty() {
+            return false;
+        }
 
         // Staggered candidacy (deterministic per-node jitter) reduces split-vote
         // livelock — a poor-man's randomized election timeout.
@@ -161,8 +185,13 @@ impl Follower {
         let pv_term = election.lock().unwrap().current_term + 1;
         let mut pre_votes = 1usize; // we'd vote for ourselves
         for m in &self.members {
-            if m == &self.self_id { continue; }
-            if let Ok(v) = self.rpc_to(m, "himsha_preVote", json!([pv_term, self.self_id])).await {
+            if m == &self.self_id {
+                continue;
+            }
+            if let Ok(v) = self
+                .rpc_to(m, "himsha_preVote", json!([pv_term, self.self_id]))
+                .await
+            {
                 if v.get("granted").and_then(|g| g.as_bool()) == Some(true) {
                     pre_votes += 1;
                 } else if let Some(t) = v.get("term").and_then(|t| t.as_u64()) {
@@ -171,15 +200,23 @@ impl Follower {
             }
         }
         if !crate::election::has_quorum(pre_votes, self.members.len()) {
-            info!("pre-vote {pre_votes}/{} — no quorum; not inflating term", self.members.len());
+            info!(
+                "pre-vote {pre_votes}/{} — no quorum; not inflating term",
+                self.members.len()
+            );
             return false;
         }
 
         let term = election.lock().unwrap().start_candidacy(&self.self_id);
         let mut votes = 1usize; // vote for self
         for m in &self.members {
-            if m == &self.self_id { continue; }
-            if let Ok(v) = self.rpc_to(m, "himsha_requestVote", json!([term, self.self_id])).await {
+            if m == &self.self_id {
+                continue;
+            }
+            if let Ok(v) = self
+                .rpc_to(m, "himsha_requestVote", json!([term, self.self_id]))
+                .await
+            {
                 if v.get("granted").and_then(|g| g.as_bool()) == Some(true) {
                     votes += 1;
                 } else if let Some(t) = v.get("term").and_then(|t| t.as_u64()) {
@@ -190,9 +227,15 @@ impl Follower {
         }
         let won = crate::election::has_quorum(votes, self.members.len());
         if won {
-            warn!("won election term {term} with {votes}/{} votes", self.members.len());
+            warn!(
+                "won election term {term} with {votes}/{} votes",
+                self.members.len()
+            );
         } else {
-            info!("election term {term}: {votes}/{} votes — no quorum", self.members.len());
+            info!(
+                "election term {term}: {votes}/{} votes — no quorum",
+                self.members.len()
+            );
         }
         won
     }
@@ -218,7 +261,11 @@ impl Follower {
             match self.fetch_block(next).await? {
                 Some(block) => {
                     self.apply_block(&block)?;
-                    info!("follower replicated block slot={} txs={}", block.slot, block.transactions.len());
+                    info!(
+                        "follower replicated block slot={} txs={}",
+                        block.slot,
+                        block.transactions.len()
+                    );
                 }
                 None => break, // not available yet; try again next poll
             }
@@ -241,12 +288,18 @@ impl Follower {
         }
         // Advance the local slot to match (slots are sequential).
         while self.state.current_slot() < block.slot {
-            self.state.advance_slot().map_err(|e| anyhow!("advance_slot: {e}"))?;
+            self.state
+                .advance_slot()
+                .map_err(|e| anyhow!("advance_slot: {e}"))?;
         }
         Ok(())
     }
 
-    fn apply_transaction(&self, tx: &himsha_runtime::transaction::RuntimeTransaction, _ts: u64) -> Result<()> {
+    fn apply_transaction(
+        &self,
+        tx: &himsha_runtime::transaction::RuntimeTransaction,
+        _ts: u64,
+    ) -> Result<()> {
         for instr in &tx.message.instructions {
             // Build the instruction's accounts from *our own* replicated state.
             let mut accounts: Vec<AccountInfo> = Vec::with_capacity(instr.accounts.len());
@@ -302,7 +355,9 @@ impl Follower {
 
     async fn fetch_block(&self, slot: u64) -> Result<Option<Block>> {
         let v = self.rpc("himsha_getBlock", json!([slot])).await?;
-        if v.is_null() { return Ok(None); }
+        if v.is_null() {
+            return Ok(None);
+        }
         Ok(Some(serde_json::from_value(v)?))
     }
 
@@ -315,7 +370,9 @@ impl Follower {
     async fn discover_leader(&self) -> Option<(u64, String)> {
         let mut best: Option<(u64, String)> = None;
         for m in &self.members {
-            if m == &self.self_id { continue; }
+            if m == &self.self_id {
+                continue;
+            }
             if let Ok(v) = self.rpc_to(m, "himsha_getLeader", json!([])).await {
                 if let Some(leader) = v.get("leader").and_then(|l| l.as_str()) {
                     let term = v.get("term").and_then(|t| t.as_u64()).unwrap_or(0);
@@ -328,7 +385,12 @@ impl Follower {
         best
     }
 
-    async fn rpc_to(&self, url: &str, method: &str, params: serde_json::Value) -> Result<serde_json::Value> {
+    async fn rpc_to(
+        &self,
+        url: &str,
+        method: &str,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value> {
         let body = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
         let resp: serde_json::Value = self
             .client
@@ -341,7 +403,10 @@ impl Follower {
         if let Some(err) = resp.get("error") {
             return Err(anyhow!("rpc error: {err}"));
         }
-        Ok(resp.get("result").cloned().unwrap_or(serde_json::Value::Null))
+        Ok(resp
+            .get("result")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null))
     }
 }
 
@@ -351,11 +416,11 @@ mod tests {
     use super::*;
     use himsha_runtime::{
         account::AccountInfo,
+        account::AccountMeta,
+        instruction::Instruction,
         program_ids,
         pubkey::Pubkey,
         transaction::{Block, Message, RuntimeTransaction},
-        instruction::Instruction,
-        account::AccountMeta,
     };
 
     fn registry() -> Arc<Mutex<ProgramRegistry>> {
@@ -379,18 +444,19 @@ mod tests {
 
     #[test]
     fn test_should_promote_logic() {
-        assert!(!should_promote(5, None));        // failover disabled → never
-        assert!(!should_promote(1, Some(3)));     // below threshold
+        assert!(!should_promote(5, None)); // failover disabled → never
+        assert!(!should_promote(1, Some(3))); // below threshold
         assert!(!should_promote(2, Some(3)));
-        assert!(should_promote(3, Some(3)));      // reached threshold
-        assert!(should_promote(9, Some(3)));      // beyond threshold
-        assert!(!should_promote(0, Some(0)));     // 0 threshold is a no-op guard
+        assert!(should_promote(3, Some(3))); // reached threshold
+        assert!(should_promote(9, Some(3))); // beyond threshold
+        assert!(!should_promote(0, Some(0))); // 0 threshold is a no-op guard
     }
 
     #[test]
     fn test_follower_replicates_transfer_by_reexecution() {
         // Temp DB for the follower replica.
-        let path = std::env::temp_dir().join(format!("himsha-follower-{}.redb", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("himsha-follower-{}.redb", std::process::id()));
         let _ = std::fs::remove_file(&path);
         let state = NodeState::open(path.to_str().unwrap()).unwrap();
 
@@ -399,14 +465,22 @@ mod tests {
         let from = Pubkey::from_seed(b"from");
         let to = Pubkey::from_seed(b"to");
         let mut from_acc = AccountInfo::new(from, sys, 1_000, 0);
-        state.save_account(&from, &StoredAccount::from(&from_acc)).unwrap();
+        state
+            .save_account(&from, &StoredAccount::from(&from_acc))
+            .unwrap();
 
         // A block containing a system Transfer of 250, exactly as the primary would emit.
-        let data = borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 250 }).unwrap();
-        let ix = Instruction::new(sys, vec![
-            AccountMeta::writable(from, true),   // signer
-            AccountMeta::writable(to, false),
-        ], data);
+        let data =
+            borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 250 })
+                .unwrap();
+        let ix = Instruction::new(
+            sys,
+            vec![
+                AccountMeta::writable(from, true), // signer
+                AccountMeta::writable(to, false),
+            ],
+            data,
+        );
         let msg = Message::new(vec![from], vec![ix], 0);
         let tx = RuntimeTransaction::unsigned(msg);
         let block = Block::new(1, 0, vec![tx], 0);

@@ -1,24 +1,28 @@
 use anyhow::Result;
 use borsh::BorshDeserialize;
-use himsha_runtime::{account::{AccountInfo, StoredAccount}, pubkey::Pubkey, utxo::UtxoMeta};
+use himsha_runtime::{
+    account::{AccountInfo, StoredAccount},
+    pubkey::Pubkey,
+    utxo::UtxoMeta,
+};
 use redb::{Database, ReadableTable, TableDefinition};
 use std::sync::Arc;
 
 // All values stored as raw byte slices (redb 1.x Value impl for &[u8])
-const ACCOUNTS:     TableDefinition<&[u8], &[u8]> = TableDefinition::new("accounts");
-const PROGRAMS:     TableDefinition<&[u8], &[u8]> = TableDefinition::new("programs");
-const IMAGE_IDS:    TableDefinition<&[u8], &[u8]> = TableDefinition::new("image_ids");
+const ACCOUNTS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("accounts");
+const PROGRAMS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("programs");
+const IMAGE_IDS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("image_ids");
 const UTXO_ANCHORS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("utxo_anchors");
-const BLOCKS:       TableDefinition<u64,   &[u8]>  = TableDefinition::new("blocks");
-const META:         TableDefinition<&str,  u64>    = TableDefinition::new("meta");
+const BLOCKS: TableDefinition<u64, &[u8]> = TableDefinition::new("blocks");
+const META: TableDefinition<&str, u64> = TableDefinition::new("meta");
 
 // ---- secondary indexes (the "indexer DB" backing the explorer & breadth RPCs) ----
 // owner(32)‖key(32) -> []  : range-scan an owner prefix to list its accounts in O(matches)
-const OWNER_IDX:    TableDefinition<&[u8], &[u8]> = TableDefinition::new("owner_idx");
+const OWNER_IDX: TableDefinition<&[u8], &[u8]> = TableDefinition::new("owner_idx");
 // himsha_txid(32) -> slot   : O(1) tx → block lookup, no block scan
-const TX_IDX:       TableDefinition<&[u8], u64>   = TableDefinition::new("tx_idx");
+const TX_IDX: TableDefinition<&[u8], u64> = TableDefinition::new("tx_idx");
 // bitcoin_txid(32) -> himsha_txid(32) : map a settlement's on-chain txid back to its L2 tx
-const BTC_TX_IDX:   TableDefinition<&[u8], &[u8]> = TableDefinition::new("btc_tx_idx");
+const BTC_TX_IDX: TableDefinition<&[u8], &[u8]> = TableDefinition::new("btc_tx_idx");
 
 /// Thread-safe node state.  `redb::Database` is `Send + Sync`.
 #[derive(Clone)]
@@ -50,7 +54,7 @@ impl NodeState {
     /// index, or first boot after upgrade). Steady-state this is a cheap empty-check.
     fn backfill_owner_index(&self) -> Result<()> {
         let rtx = self.db.begin_read()?;
-        let oi_len  = rtx.open_table(OWNER_IDX)?.len()?;
+        let oi_len = rtx.open_table(OWNER_IDX)?.len()?;
         let acc_len = rtx.open_table(ACCOUNTS)?.len()?;
         if oi_len > 0 || acc_len == 0 {
             return Ok(()); // already indexed, or nothing to index
@@ -83,18 +87,26 @@ impl NodeState {
     }
 
     // Helper: read raw bytes for a key, return owned Vec<u8> or None.
-    fn read_bytes(db: &Database, tbl: TableDefinition<&[u8], &[u8]>, key: &[u8]) -> Result<Option<Vec<u8>>> {
-        let rtx   = db.begin_read()?;
+    fn read_bytes(
+        db: &Database,
+        tbl: TableDefinition<&[u8], &[u8]>,
+        key: &[u8],
+    ) -> Result<Option<Vec<u8>>> {
+        let rtx = db.begin_read()?;
         let table = rtx.open_table(tbl)?;
-        let guard = table.get(key)?;              // Option<AccessGuard>
+        let guard = table.get(key)?; // Option<AccessGuard>
         let bytes = guard.map(|ag| ag.value().to_vec()); // owned copy
-        drop(table);                              // release borrow of rtx
+        drop(table); // release borrow of rtx
         drop(rtx);
         Ok(bytes)
     }
 
-    fn read_u64_tbl(db: &Database, tbl: TableDefinition<u64, &[u8]>, key: u64) -> Result<Option<Vec<u8>>> {
-        let rtx   = db.begin_read()?;
+    fn read_u64_tbl(
+        db: &Database,
+        tbl: TableDefinition<u64, &[u8]>,
+        key: u64,
+    ) -> Result<Option<Vec<u8>>> {
+        let rtx = db.begin_read()?;
         let table = rtx.open_table(tbl)?;
         let guard = table.get(key)?;
         let bytes = guard.map(|ag| ag.value().to_vec());
@@ -115,7 +127,8 @@ impl NodeState {
                 let mut t = w.open_table(ACCOUNTS)?;
                 let prior = {
                     let g = t.get(key.as_ref())?;
-                    g.and_then(|ag| StoredAccount::try_from_slice(ag.value()).ok()).map(|s| s.owner)
+                    g.and_then(|ag| StoredAccount::try_from_slice(ag.value()).ok())
+                        .map(|s| s.owner)
                 };
                 t.insert(key.as_ref(), bytes.as_slice())?;
                 prior
@@ -149,7 +162,7 @@ impl NodeState {
         let bytes = Self::read_bytes(&self.db, ACCOUNTS, key.as_ref())?;
         Ok(match bytes {
             Some(b) => Some(StoredAccount::try_from_slice(&b)?),
-            None    => None,
+            None => None,
         })
     }
 
@@ -192,7 +205,7 @@ impl NodeState {
     /// This is an explicit full scan — the explorer pages it; programs should use
     /// [`accounts_by_owner`] (indexed) instead.
     pub fn all_accounts(&self, limit: usize) -> Result<Vec<AccountInfo>> {
-        let rtx   = self.db.begin_read()?;
+        let rtx = self.db.begin_read()?;
         let table = rtx.open_table(ACCOUNTS)?;
         let mut out = Vec::new();
         for entry in table.iter()? {
@@ -201,7 +214,9 @@ impl NodeState {
             let mut key = [0u8; 32];
             key.copy_from_slice(k.value());
             out.push(stored.into_account(Pubkey::from(key)));
-            if limit != 0 && out.len() >= limit { break; }
+            if limit != 0 && out.len() >= limit {
+                break;
+            }
         }
         Ok(out)
     }
@@ -254,8 +269,8 @@ impl NodeState {
     // ---- blocks / slots ----
 
     pub fn current_slot(&self) -> u64 {
-        let rtx  = self.db.begin_read().unwrap();
-        let tbl  = rtx.open_table(META).unwrap();
+        let rtx = self.db.begin_read().unwrap();
+        let tbl = rtx.open_table(META).unwrap();
         tbl.get("slot").unwrap().map(|ag| ag.value()).unwrap_or(0)
     }
 
@@ -263,8 +278,8 @@ impl NodeState {
         let w = self.db.begin_write()?;
         let new_slot = {
             let mut t = w.open_table(META)?;
-            let cur   = t.get("slot")?.map(|ag| ag.value()).unwrap_or(0);
-            let next  = cur + 1;
+            let cur = t.get("slot")?.map(|ag| ag.value()).unwrap_or(0);
+            let next = cur + 1;
             t.insert("slot", next)?;
             next
         };
@@ -291,7 +306,8 @@ impl NodeState {
     /// crash can never leave a partially-applied multi-instruction transaction.
     /// Mirrors [`save_account`](Self::save_account)'s OWNER_IDX / count upkeep.
     pub fn save_accounts_atomic(
-        &self, accounts: &std::collections::HashMap<Pubkey, StoredAccount>,
+        &self,
+        accounts: &std::collections::HashMap<Pubkey, StoredAccount>,
     ) -> Result<()> {
         if accounts.is_empty() {
             return Ok(());
@@ -306,7 +322,8 @@ impl NodeState {
                 let new_owner = account.owner;
                 let prior_owner: Option<[u8; 32]> = {
                     let g = acc_tbl.get(key.as_ref())?;
-                    g.and_then(|ag| StoredAccount::try_from_slice(ag.value()).ok()).map(|s| s.owner)
+                    g.and_then(|ag| StoredAccount::try_from_slice(ag.value()).ok())
+                        .map(|s| s.owner)
                 };
                 acc_tbl.insert(key.as_ref(), bytes.as_slice())?;
 
@@ -340,7 +357,9 @@ impl NodeState {
         let mut set = std::collections::HashSet::new();
         for slot in tip.saturating_sub(max_age)..=tip {
             if let Some(bytes) = self.load_block(slot)? {
-                if let Ok(block) = serde_json::from_slice::<himsha_runtime::transaction::Block>(&bytes) {
+                if let Ok(block) =
+                    serde_json::from_slice::<himsha_runtime::transaction::Block>(&bytes)
+                {
                     set.insert(block.blockhash);
                 }
             }
@@ -403,8 +422,8 @@ impl NodeState {
         let rtx = self.db.begin_read()?;
         let m = rtx.open_table(META)?;
         let accounts = m.get("account_count")?.map(|ag| ag.value()).unwrap_or(0);
-        let txs      = m.get("tx_count")?.map(|ag| ag.value()).unwrap_or(0);
-        let slot     = m.get("slot")?.map(|ag| ag.value()).unwrap_or(0);
+        let txs = m.get("tx_count")?.map(|ag| ag.value()).unwrap_or(0);
+        let slot = m.get("slot")?.map(|ag| ag.value()).unwrap_or(0);
         drop(m);
         drop(rtx);
         Ok((accounts, txs, slot))
@@ -416,13 +435,21 @@ mod tests {
     use super::*;
 
     fn tmp_state(tag: &str) -> (NodeState, std::path::PathBuf) {
-        let path = std::env::temp_dir().join(format!("himsha-state-{tag}-{}.redb", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("himsha-state-{tag}-{}.redb", std::process::id()));
         let _ = std::fs::remove_file(&path);
         (NodeState::open(path.to_str().unwrap()).unwrap(), path)
     }
 
     fn acct(owner: Pubkey, lamports: u64) -> StoredAccount {
-        StoredAccount { lamports, data: vec![], owner: owner.into(), executable: false, utxo_txid: None, utxo_vout: None }
+        StoredAccount {
+            lamports,
+            data: vec![],
+            owner: owner.into(),
+            executable: false,
+            utxo_txid: None,
+            utxo_vout: None,
+        }
     }
 
     #[test]
@@ -455,8 +482,12 @@ mod tests {
         s.save_account(&k, &acct(a, 2)).unwrap(); // same owner, balance bump
         assert_eq!(s.accounts_by_owner(&a).unwrap().len(), 1);
 
-        s.save_account(&k, &acct(b, 3)).unwrap();  // reassign to owner b
-        assert_eq!(s.accounts_by_owner(&a).unwrap().len(), 0, "stale entry dropped");
+        s.save_account(&k, &acct(b, 3)).unwrap(); // reassign to owner b
+        assert_eq!(
+            s.accounts_by_owner(&a).unwrap().len(),
+            0,
+            "stale entry dropped"
+        );
         assert_eq!(s.accounts_by_owner(&b).unwrap().len(), 1);
 
         let (accounts, _, _) = s.stats().unwrap();
@@ -477,7 +508,13 @@ mod tests {
         // All three landed in one commit, indexed and counted.
         assert_eq!(s.accounts_by_owner(&prog).unwrap().len(), 3);
         assert_eq!(s.stats().unwrap().0, 3);
-        assert_eq!(s.load_account(&Pubkey::from_seed(b"a2")).unwrap().unwrap().lamports, 2);
+        assert_eq!(
+            s.load_account(&Pubkey::from_seed(b"a2"))
+                .unwrap()
+                .unwrap()
+                .lamports,
+            2
+        );
 
         // Re-committing existing keys (one reassigned to a new owner) keeps the count
         // stable and updates the owner index — same upkeep as save_account.
@@ -517,15 +554,22 @@ mod tests {
     fn test_backfill_owner_index_on_open() {
         // Write accounts directly to ACCOUNTS only (simulate a pre-index DB), then
         // reopen and confirm the owner index was backfilled.
-        let path = std::env::temp_dir().join(format!("himsha-backfill-{}.redb", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("himsha-backfill-{}.redb", std::process::id()));
         let _ = std::fs::remove_file(&path);
         let owner = Pubkey::from_seed(b"legacy-prog");
         let key = Pubkey::from_seed(b"legacy-acct");
         {
             let db = Database::create(path.to_str().unwrap()).unwrap();
             let w = db.begin_write().unwrap();
-            { let mut t = w.open_table(ACCOUNTS).unwrap();
-              t.insert(key.as_ref(), borsh::to_vec(&acct(owner, 42)).unwrap().as_slice()).unwrap(); }
+            {
+                let mut t = w.open_table(ACCOUNTS).unwrap();
+                t.insert(
+                    key.as_ref(),
+                    borsh::to_vec(&acct(owner, 42)).unwrap().as_slice(),
+                )
+                .unwrap();
+            }
             w.commit().unwrap();
         }
         let s = NodeState::open(path.to_str().unwrap()).unwrap(); // triggers backfill

@@ -6,7 +6,18 @@ use serde::{Deserialize, Serialize};
 /// When an account's state changes, the node creates a new Bitcoin output
 /// and updates `utxo` on the account. The previous UTXO is spent in the
 /// same transaction, forming a chain of provenance on Bitcoin.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    BorshSerialize,
+    BorshDeserialize,
+    Serialize,
+    Deserialize,
+)]
 pub struct UtxoMeta {
     /// Transaction ID (little-endian bytes, as stored by Bitcoin Core).
     pub txid: [u8; 32],

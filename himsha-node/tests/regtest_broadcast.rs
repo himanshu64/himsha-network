@@ -44,7 +44,8 @@ fn mine(rpc: &Client, n: u64) -> Address {
         .expect("get_new_address")
         .require_network(Network::Regtest)
         .expect("regtest addr");
-    rpc.generate_to_address(n, &addr).expect("generate_to_address");
+    rpc.generate_to_address(n, &addr)
+        .expect("generate_to_address");
     addr
 }
 
@@ -67,12 +68,23 @@ fn committee_keyspend_is_accepted_onchain() {
     // 2. Fund the committee address, then confirm it.
     let funding_amt = Amount::from_sat(200_000);
     let funding_txid = rpc
-        .send_to_address(&committee_addr, funding_amt, None, None, None, None, None, None)
+        .send_to_address(
+            &committee_addr,
+            funding_amt,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
         .expect("fund committee");
     mine(&rpc, 1);
 
     // 3. Find which vout paid the committee.
-    let funding_tx = rpc.get_raw_transaction(&funding_txid, None).expect("get funding tx");
+    let funding_tx = rpc
+        .get_raw_transaction(&funding_txid, None)
+        .expect("get funding tx");
     let committee_spk = committee_addr.script_pubkey();
     let (vout, in_value) = funding_tx
         .output
@@ -105,7 +117,12 @@ fn committee_keyspend_is_accepted_onchain() {
 
     // 6. Confirm it and assert it really landed on-chain.
     mine(&rpc, 1);
-    let confirmed = rpc.get_raw_transaction_info(&settle_txid, None).expect("tx info");
-    assert!(confirmed.confirmations.unwrap_or(0) >= 1, "settlement tx did not confirm");
+    let confirmed = rpc
+        .get_raw_transaction_info(&settle_txid, None)
+        .expect("tx info");
+    assert!(
+        confirmed.confirmations.unwrap_or(0) >= 1,
+        "settlement tx did not confirm"
+    );
     eprintln!("✅ confirmed in a block — FROST→Taproot settlement verified end-to-end");
 }

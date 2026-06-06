@@ -24,7 +24,8 @@ use bitcoin::{
     secp256k1::XOnlyPublicKey,
     sighash::{Prevouts, SighashCache, TapSighashType},
     transaction::Version,
-    Address, Amount, Network, OutPoint, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Txid, Witness,
+    Address, Amount, Network, OutPoint, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Txid,
+    Witness,
 };
 use std::str::FromStr;
 
@@ -32,7 +33,8 @@ use himsha_threshold::taproot::TaprootCommittee;
 
 /// The Taproot scriptPubKey controlled by the committee's group key.
 fn committee_p2tr(group_xonly: &[u8; 32]) -> Result<ScriptBuf> {
-    let xonly = XOnlyPublicKey::from_slice(group_xonly).map_err(|e| anyhow!("bad group key: {e}"))?;
+    let xonly =
+        XOnlyPublicKey::from_slice(group_xonly).map_err(|e| anyhow!("bad group key: {e}"))?;
     // The committee's group key is already the BIP-341 tweaked output key.
     let output_key = TweakedPublicKey::dangerous_assume_tweaked(xonly);
     Ok(ScriptBuf::new_p2tr_tweaked(output_key))
@@ -58,7 +60,9 @@ pub fn build_keyspend(
     network: Network,
 ) -> Result<(Transaction, [u8; 32])> {
     let txid = Txid::from_str(utxo_txid).map_err(|e| anyhow!("bad txid: {e}"))?;
-    let send = in_value.checked_sub(fee).ok_or_else(|| anyhow!("value {in_value} below fee {fee}"))?;
+    let send = in_value
+        .checked_sub(fee)
+        .ok_or_else(|| anyhow!("value {in_value} below fee {fee}"))?;
     let recipient_spk = Address::from_str(recipient)
         .map_err(|e| anyhow!("bad address: {e}"))?
         .require_network(network)
@@ -75,11 +79,17 @@ pub fn build_keyspend(
             sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
             witness: Witness::new(),
         }],
-        output: vec![TxOut { value: Amount::from_sat(send), script_pubkey: recipient_spk }],
+        output: vec![TxOut {
+            value: Amount::from_sat(send),
+            script_pubkey: recipient_spk,
+        }],
     };
 
     // The prevout being spent is the committee-owned P2TR output.
-    let prevout = TxOut { value: Amount::from_sat(in_value), script_pubkey: committee_spk };
+    let prevout = TxOut {
+        value: Amount::from_sat(in_value),
+        script_pubkey: committee_spk,
+    };
     let mut cache = SighashCache::new(&tx);
     let sighash = cache
         .taproot_key_spend_signature_hash(0, &Prevouts::All(&[prevout]), TapSighashType::Default)
@@ -91,7 +101,10 @@ pub fn build_keyspend(
 /// Attach a 64-byte key-path Schnorr signature as the input witness.
 pub fn finalize_keyspend(mut tx: Transaction, sig64: &[u8]) -> Result<String> {
     if sig64.len() != 64 {
-        return Err(anyhow!("expected 64-byte schnorr signature, got {}", sig64.len()));
+        return Err(anyhow!(
+            "expected 64-byte schnorr signature, got {}",
+            sig64.len()
+        ));
     }
     let mut witness = Witness::new();
     witness.push(sig64); // SIGHASH_DEFAULT → bare 64-byte sig, no sighash-type byte
@@ -112,10 +125,22 @@ pub fn settle_with_committee(
     network: Network,
 ) -> Result<String> {
     let group_xonly = committee.group_xonly();
-    let (tx, sighash) = build_keyspend(&group_xonly, utxo_txid, vout, in_value, recipient, fee, network)?;
+    let (tx, sighash) = build_keyspend(
+        &group_xonly,
+        utxo_txid,
+        vout,
+        in_value,
+        recipient,
+        fee,
+        network,
+    )?;
 
     // A quorum of the committee signs the sighash.
-    let quorum: Vec<_> = committee.signer_ids().into_iter().take(committee.threshold() as usize).collect();
+    let quorum: Vec<_> = committee
+        .signer_ids()
+        .into_iter()
+        .take(committee.threshold() as usize)
+        .collect();
     let sig = committee
         .sign(&sighash, &quorum)
         .map_err(|e| anyhow!("threshold sign: {e}"))?;
@@ -137,7 +162,8 @@ mod tests {
         let committee = TaprootCommittee::generate(2, 3).unwrap();
         let xonly = committee.group_xonly();
         let txid = "0000000000000000000000000000000000000000000000000000000000000001";
-        let (tx, sighash) = build_keyspend(&xonly, txid, 0, 100_000, RECIPIENT, 500, Network::Regtest).unwrap();
+        let (tx, sighash) =
+            build_keyspend(&xonly, txid, 0, 100_000, RECIPIENT, 500, Network::Regtest).unwrap();
         assert_eq!(tx.input.len(), 1);
         assert_eq!(tx.output.len(), 1);
         assert_eq!(tx.output[0].value.to_sat(), 99_500); // in − fee
@@ -148,7 +174,16 @@ mod tests {
     fn test_settle_with_committee_attaches_witness() {
         let committee = TaprootCommittee::generate(2, 3).unwrap();
         let txid = "0000000000000000000000000000000000000000000000000000000000000001";
-        let hex = settle_with_committee(&committee, txid, 0, 100_000, RECIPIENT, 500, Network::Regtest).unwrap();
+        let hex = settle_with_committee(
+            &committee,
+            txid,
+            0,
+            100_000,
+            RECIPIENT,
+            500,
+            Network::Regtest,
+        )
+        .unwrap();
         assert!(!hex.is_empty());
         // The hex must contain the 64-byte (128 hex char) witness signature.
         assert!(hex.len() > 128);
@@ -159,7 +194,8 @@ mod tests {
         let committee = TaprootCommittee::generate(2, 3).unwrap();
         let xonly = committee.group_xonly();
         let txid = "0000000000000000000000000000000000000000000000000000000000000001";
-        let (tx, _) = build_keyspend(&xonly, txid, 0, 100_000, RECIPIENT, 500, Network::Regtest).unwrap();
+        let (tx, _) =
+            build_keyspend(&xonly, txid, 0, 100_000, RECIPIENT, 500, Network::Regtest).unwrap();
         assert!(finalize_keyspend(tx, &[0u8; 10]).is_err());
     }
 }

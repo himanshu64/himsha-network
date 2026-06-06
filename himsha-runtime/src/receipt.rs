@@ -28,8 +28,19 @@ pub struct ExecutionReceipt {
 }
 
 impl ExecutionReceipt {
-    pub fn unverified(program_id: Pubkey, image_id: [u8; 32], journal_hash: [u8; 32], proof_bytes: Vec<u8>) -> Self {
-        Self { program_id, image_id, journal_hash, proof_bytes, verified: false }
+    pub fn unverified(
+        program_id: Pubkey,
+        image_id: [u8; 32],
+        journal_hash: [u8; 32],
+        proof_bytes: Vec<u8>,
+    ) -> Self {
+        Self {
+            program_id,
+            image_id,
+            journal_hash,
+            proof_bytes,
+            verified: false,
+        }
     }
 }
 
@@ -95,7 +106,12 @@ mod tests {
             ExecutionReceipt::journal_hash_for(&accounts),
             Vec::new(),
         );
-        StateTransition { receipt, updated_accounts: accounts, new_utxos: vec![], bitcoin_txid: None }
+        StateTransition {
+            receipt,
+            updated_accounts: accounts,
+            new_utxos: vec![],
+            bitcoin_txid: None,
+        }
     }
 
     fn acct(lamports: u64) -> AccountInfo {

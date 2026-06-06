@@ -20,7 +20,10 @@ use serde_json::{json, Value};
 /// Lightning vs. an on-chain address.
 pub fn is_invoice(recipient: &str) -> bool {
     let r = recipient.trim().to_ascii_lowercase();
-    r.starts_with("lnbc") || r.starts_with("lntb") || r.starts_with("lnbcrt") || r.starts_with("lnsb")
+    r.starts_with("lnbc")
+        || r.starts_with("lntb")
+        || r.starts_with("lnbcrt")
+        || r.starts_with("lnsb")
 }
 
 /// Thin LND REST client.
@@ -39,7 +42,11 @@ impl LightningClient {
             .danger_accept_invalid_certs(true) // local LND self-signed TLS
             .build()
             .ok()?;
-        Some(Self { base, macaroon_hex, http })
+        Some(Self {
+            base,
+            macaroon_hex,
+            http,
+        })
     }
 
     fn url(&self, path: &str) -> String {
@@ -73,7 +80,12 @@ impl LightningClient {
 
     /// Create a BOLT-11 invoice for `amount_sat`; returns the payment request string.
     pub async fn create_invoice(&self, amount_sat: u64, memo: &str) -> Result<String> {
-        let v = self.post("/v1/invoices", json!({ "value": amount_sat.to_string(), "memo": memo })).await?;
+        let v = self
+            .post(
+                "/v1/invoices",
+                json!({ "value": amount_sat.to_string(), "memo": memo }),
+            )
+            .await?;
         v.get("payment_request")
             .and_then(|p| p.as_str())
             .map(|s| s.to_string())
@@ -82,19 +94,30 @@ impl LightningClient {
 
     /// Pay a BOLT-11 invoice; returns the payment hash (base64) on success.
     pub async fn pay_invoice(&self, bolt11: &str) -> Result<String> {
-        let v = self.post("/v1/channels/transactions", json!({ "payment_request": bolt11 })).await?;
+        let v = self
+            .post(
+                "/v1/channels/transactions",
+                json!({ "payment_request": bolt11 }),
+            )
+            .await?;
         if let Some(err) = v.get("payment_error").and_then(|e| e.as_str()) {
             if !err.is_empty() {
                 return Err(anyhow!("LND pay error: {err}"));
             }
         }
-        Ok(v.get("payment_hash").and_then(|h| h.as_str()).unwrap_or_default().to_string())
+        Ok(v.get("payment_hash")
+            .and_then(|h| h.as_str())
+            .unwrap_or_default()
+            .to_string())
     }
 
     /// Total spendable channel balance, in sats.
     pub async fn channel_balance_sat(&self) -> Result<u64> {
         let v = self.get("/v1/balance/channels").await?;
-        Ok(v.get("balance").and_then(|b| b.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0))
+        Ok(v.get("balance")
+            .and_then(|b| b.as_str())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0))
     }
 }
 
@@ -105,9 +128,9 @@ mod tests {
     #[test]
     fn test_is_invoice() {
         assert!(is_invoice("lnbc100n1p..."));
-        assert!(is_invoice("lnbcrt500u1p..."));   // regtest
-        assert!(is_invoice("LNTB10u1p..."));      // case-insensitive
-        assert!(!is_invoice("bcrt1p0xlxv..."));   // a Bitcoin address, not an invoice
+        assert!(is_invoice("lnbcrt500u1p...")); // regtest
+        assert!(is_invoice("LNTB10u1p...")); // case-insensitive
+        assert!(!is_invoice("bcrt1p0xlxv...")); // a Bitcoin address, not an invoice
         assert!(!is_invoice("3J98t1...legacy"));
     }
 }

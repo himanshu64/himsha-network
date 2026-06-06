@@ -8,13 +8,15 @@
 
 use std::collections::BTreeMap;
 
-use frost_secp256k1_tr as frost;
 use frost::Identifier;
+use frost_secp256k1_tr as frost;
 
 use crate::{RobustSignature, ThresholdError};
 
 impl From<frost::Error> for ThresholdError {
-    fn from(e: frost::Error) -> Self { ThresholdError::Frost(e.to_string()) }
+    fn from(e: frost::Error) -> Self {
+        ThresholdError::Frost(e.to_string())
+    }
 }
 
 /// An M-of-N Taproot signing committee.
@@ -29,18 +31,31 @@ impl TaprootCommittee {
     pub fn generate(threshold: u16, total: u16) -> Result<Self, ThresholdError> {
         let mut rng = rand::thread_rng();
         let (shares, pubkeys) = frost::keys::generate_with_dealer(
-            total, threshold, frost::keys::IdentifierList::Default, &mut rng,
+            total,
+            threshold,
+            frost::keys::IdentifierList::Default,
+            &mut rng,
         )?;
         let mut key_packages = BTreeMap::new();
         for (id, secret_share) in shares {
             key_packages.insert(id, frost::keys::KeyPackage::try_from(secret_share)?);
         }
-        Ok(Self { threshold, key_packages, pubkeys })
+        Ok(Self {
+            threshold,
+            key_packages,
+            pubkeys,
+        })
     }
 
-    pub fn threshold(&self) -> u16 { self.threshold }
-    pub fn total(&self) -> usize { self.key_packages.len() }
-    pub fn signer_ids(&self) -> Vec<Identifier> { self.key_packages.keys().copied().collect() }
+    pub fn threshold(&self) -> u16 {
+        self.threshold
+    }
+    pub fn total(&self) -> usize {
+        self.key_packages.len()
+    }
+    pub fn signer_ids(&self) -> Vec<Identifier> {
+        self.key_packages.keys().copied().collect()
+    }
 
     /// Serialized group verifying key.
     pub fn group_key(&self) -> Vec<u8> {
@@ -51,7 +66,13 @@ impl TaprootCommittee {
     pub fn group_xonly(&self) -> [u8; 32] {
         let bytes = self.group_key();
         let mut x = [0u8; 32];
-        let src = if bytes.len() == 33 { &bytes[1..33] } else if bytes.len() >= 32 { &bytes[..32] } else { &bytes[..] };
+        let src = if bytes.len() == 33 {
+            &bytes[1..33]
+        } else if bytes.len() >= 32 {
+            &bytes[..32]
+        } else {
+            &bytes[..]
+        };
         x[..src.len().min(32)].copy_from_slice(&src[..src.len().min(32)]);
         x
     }
@@ -60,13 +81,19 @@ impl TaprootCommittee {
     /// 64-byte Schnorr signature for the Taproot key-path witness.
     pub fn sign(&self, message: &[u8], signers: &[Identifier]) -> Result<Vec<u8>, ThresholdError> {
         if (signers.len() as u16) < self.threshold {
-            return Err(ThresholdError::NotEnoughSigners { needed: self.threshold, got: signers.len() });
+            return Err(ThresholdError::NotEnoughSigners {
+                needed: self.threshold,
+                got: signers.len(),
+            });
         }
         let mut rng = rand::thread_rng();
         let mut nonces = BTreeMap::new();
         let mut commitments = BTreeMap::new();
         for id in signers {
-            let kp = self.key_packages.get(id).ok_or(ThresholdError::UnknownSigner)?;
+            let kp = self
+                .key_packages
+                .get(id)
+                .ok_or(ThresholdError::UnknownSigner)?;
             let (n, c) = frost::round1::commit(kp.signing_share(), &mut rng);
             nonces.insert(*id, n);
             commitments.insert(*id, c);
@@ -74,11 +101,14 @@ impl TaprootCommittee {
         let signing_package = frost::SigningPackage::new(commitments, message);
         let mut shares = BTreeMap::new();
         for id in signers {
-            let kp = self.key_packages.get(id).ok_or(ThresholdError::UnknownSigner)?;
+            let kp = self
+                .key_packages
+                .get(id)
+                .ok_or(ThresholdError::UnknownSigner)?;
             shares.insert(*id, frost::round2::sign(&signing_package, &nonces[id], kp)?);
         }
         let group_sig = frost::aggregate(&signing_package, &shares, &self.pubkeys)?;
-        Ok(group_sig.serialize().map_err(ThresholdError::from)?)
+        group_sig.serialize().map_err(ThresholdError::from)
     }
 
     /// **ROAST-style robust signing** for Taproot key-spend (see
@@ -91,8 +121,11 @@ impl TaprootCommittee {
         online: &[Identifier],
         disruptive: &[Identifier],
     ) -> Result<RobustSignature, ThresholdError> {
-        let mut candidates: Vec<Identifier> =
-            online.iter().copied().filter(|id| self.key_packages.contains_key(id)).collect();
+        let mut candidates: Vec<Identifier> = online
+            .iter()
+            .copied()
+            .filter(|id| self.key_packages.contains_key(id))
+            .collect();
         let mut excluded = 0usize;
         let mut rounds = 0u32;
         let mut rng = rand::thread_rng();
@@ -102,8 +135,11 @@ impl TaprootCommittee {
                 return Err(ThresholdError::RobustExhausted { excluded });
             }
             rounds += 1;
-            let quorum: Vec<Identifier> =
-                candidates.iter().copied().take(self.threshold as usize).collect();
+            let quorum: Vec<Identifier> = candidates
+                .iter()
+                .copied()
+                .take(self.threshold as usize)
+                .collect();
 
             let mut nonces = BTreeMap::new();
             let mut commitments = BTreeMap::new();
@@ -119,7 +155,11 @@ impl TaprootCommittee {
             let mut shares = BTreeMap::new();
             for id in &quorum {
                 let kp = &self.key_packages[id];
-                let pkg = if disruptive.contains(id) { &bad_package } else { &signing_package };
+                let pkg = if disruptive.contains(id) {
+                    &bad_package
+                } else {
+                    &signing_package
+                };
                 shares.insert(*id, frost::round2::sign(pkg, &nonces[id], kp)?);
             }
 
@@ -163,7 +203,7 @@ mod tests {
         let sighash = [0x11u8; 32];
         let ids = committee.signer_ids();
         let sig = committee.sign(&sighash, &ids[..2]).unwrap();
-        assert_eq!(sig.len(), 64);                 // Taproot key-path Schnorr sig
+        assert_eq!(sig.len(), 64); // Taproot key-path Schnorr sig
         assert!(committee.verify(&sighash, &sig));
         assert!(!committee.verify(&[0x22u8; 32], &sig));
     }
@@ -184,8 +224,14 @@ mod tests {
 
         // The first signer (which the quorum would pick first) is disruptive.
         let robust = committee.sign_robust(&sighash, &ids, &ids[..1]).unwrap();
-        assert!(robust.excluded >= 1, "the disruptive signer must be identified & dropped");
-        assert!(robust.rounds >= 2, "at least one retry after excluding the culprit");
+        assert!(
+            robust.excluded >= 1,
+            "the disruptive signer must be identified & dropped"
+        );
+        assert!(
+            robust.rounds >= 2,
+            "at least one retry after excluding the culprit"
+        );
         assert_eq!(robust.signature.len(), 64);
         assert!(committee.verify(&sighash, &robust.signature));
     }

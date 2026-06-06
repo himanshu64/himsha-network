@@ -12,14 +12,25 @@ pub const PDA_BUMP: u8 = 255;
 
 /// 32-byte identifier for accounts, programs, and signers.
 #[derive(
-    Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default,
-    BorshSerialize, BorshDeserialize,
-    Serialize, Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Default,
+    BorshSerialize,
+    BorshDeserialize,
+    Serialize,
+    Deserialize,
 )]
 pub struct Pubkey([u8; 32]);
 
 impl Pubkey {
-    pub const fn new(bytes: [u8; 32]) -> Self { Self(bytes) }
+    pub const fn new(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
 
     /// Deterministic key from a human-readable seed (used for well-known IDs).
     pub fn from_seed(seed: &[u8]) -> Self {
@@ -45,17 +56,23 @@ impl Pubkey {
     /// address" guarantee that real PDAs provide.
     pub fn find_program_address(seeds: &[&[u8]], program_id: &Pubkey) -> (Pubkey, u8) {
         let mut hasher = Sha256::new();
-        for s in seeds { hasher.update(s); }
-        hasher.update(&[PDA_BUMP]);
+        for s in seeds {
+            hasher.update(s);
+        }
+        hasher.update([PDA_BUMP]);
         hasher.update(program_id.as_ref());
         hasher.update(b"himsha::pda");
         let hash: [u8; 32] = hasher.finalize().into();
         (Pubkey(hash), PDA_BUMP)
     }
 
-    pub fn as_bytes(&self) -> &[u8; 32] { &self.0 }
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 
-    pub fn to_base58(&self) -> String { bs58::encode(&self.0).into_string() }
+    pub fn to_base58(&self) -> String {
+        bs58::encode(&self.0).into_string()
+    }
 
     pub fn from_base58(s: &str) -> Result<Self, String> {
         bs58::decode(s)
@@ -70,15 +87,21 @@ impl Pubkey {
 }
 
 impl AsRef<[u8]> for Pubkey {
-    fn as_ref(&self) -> &[u8] { &self.0 }
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl From<[u8; 32]> for Pubkey {
-    fn from(b: [u8; 32]) -> Self { Self(b) }
+    fn from(b: [u8; 32]) -> Self {
+        Self(b)
+    }
 }
 
 impl From<Pubkey> for [u8; 32] {
-    fn from(p: Pubkey) -> Self { p.0 }
+    fn from(p: Pubkey) -> Self {
+        p.0
+    }
 }
 
 impl fmt::Display for Pubkey {
@@ -102,7 +125,10 @@ pub struct Keypair(Secp256k1Keypair);
 impl Keypair {
     /// Generate a fresh random keypair.
     pub fn generate() -> Self {
-        Self(Secp256k1Keypair::new(&Secp256k1::new(), &mut rand::thread_rng()))
+        Self(Secp256k1Keypair::new(
+            &Secp256k1::new(),
+            &mut rand::thread_rng(),
+        ))
     }
 
     /// Reconstruct a keypair from a 32-byte secret key.

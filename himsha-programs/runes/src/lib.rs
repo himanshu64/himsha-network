@@ -2,13 +2,13 @@
 //!
 //! Models the core of the Bitcoin Runes protocol on the HIMSHA account model:
 //!
-//!   - **Etch**     — define a new rune (name, symbol, divisibility, optional
-//!                    premine, optional open-mint *terms*).
-//!   - **Mint**     — anyone mints `terms.amount` while the open-mint cap and
-//!                    height window allow it.
-//!   - **Transfer** — move balance between two rune-balance accounts (the HIMSHA
-//!                    analogue of a Runestone *edict*).
-//!   - **Burn**     — permanently destroy balance, reducing circulating supply.
+//! - **Etch** — define a new rune (name, symbol, divisibility, optional
+//!   premine, optional open-mint *terms*).
+//! - **Mint** — anyone mints `terms.amount` while the open-mint cap and
+//!   height window allow it.
+//! - **Transfer** — move balance between two rune-balance accounts (the HIMSHA
+//!   analogue of a Runestone *edict*).
+//! - **Burn** — permanently destroy balance, reducing circulating supply.
 //!
 //! State design (borsh, mirrors the token program):
 //!   `RuneEtching`  — one per rune, stored in the rune account.
@@ -126,9 +126,16 @@ const MAX_DIVISIBILITY: u8 = 38;
 
 // ---- instruction builders ----
 
+#[allow(clippy::too_many_arguments)]
 pub fn etch(
-    rune: Pubkey, etcher_balance: Pubkey, etcher: Pubkey,
-    name: String, symbol: u32, divisibility: u8, premine: u64, terms: Option<MintTerms>,
+    rune: Pubkey,
+    etcher_balance: Pubkey,
+    etcher: Pubkey,
+    name: String,
+    symbol: u32,
+    divisibility: u8,
+    premine: u64,
+    terms: Option<MintTerms>,
 ) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::runes_program(),
@@ -137,7 +144,13 @@ pub fn etch(
             AccountMeta::writable(etcher_balance, false),
             AccountMeta::readonly(etcher, true),
         ],
-        &RuneInstruction::Etch { name, symbol, divisibility, premine, terms },
+        &RuneInstruction::Etch {
+            name,
+            symbol,
+            divisibility,
+            premine,
+            terms,
+        },
     )
 }
 
@@ -190,22 +203,39 @@ pub fn init_balance(balance: Pubkey, owner: Pubkey) -> Instruction {
 
 // ---- processing ----
 
-pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Result<(), ProgramError> {
-    let ix = RuneInstruction::try_from_slice(data)
-        .map_err(|_| ProgramError::InvalidInstruction)?;
+pub fn process(
+    accounts: &mut [AccountInfo],
+    data: &[u8],
+    timestamp: u64,
+) -> Result<(), ProgramError> {
+    let ix = RuneInstruction::try_from_slice(data).map_err(|_| ProgramError::InvalidInstruction)?;
 
     match ix {
-        RuneInstruction::Etch { name, symbol, divisibility, premine, terms } => {
-            if accounts.len() < 3 { return Err(ProgramError::NotEnoughAccounts); }
+        RuneInstruction::Etch {
+            name,
+            symbol,
+            divisibility,
+            premine,
+            terms,
+        } => {
+            if accounts.len() < 3 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             accounts[2].require_signer()?; // etcher/minter/owner must sign
-            if name.is_empty() { return Err(ProgramError::InvalidInstruction); }
-            if divisibility > MAX_DIVISIBILITY { return Err(ProgramError::InvalidInstruction); }
+            if name.is_empty() {
+                return Err(ProgramError::InvalidInstruction);
+            }
+            if divisibility > MAX_DIVISIBILITY {
+                return Err(ProgramError::InvalidInstruction);
+            }
 
             let rune_key = accounts[0].key;
             let etcher = accounts[2].key;
 
             let mut rune: RuneEtching = accounts[0].read_data().unwrap_or_default();
-            if rune.is_etched { return Err(ProgramError::AlreadyInitialized); }
+            if rune.is_etched {
+                return Err(ProgramError::AlreadyInitialized);
+            }
 
             rune.name = name;
             rune.symbol = symbol;
@@ -223,19 +253,26 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
                 let mut bal: RuneBalance = accounts[1].read_data().unwrap_or_default();
                 bal.rune = rune_key;
                 bal.owner = etcher;
-                bal.amount = bal.amount.checked_add(premine).ok_or(ProgramError::Overflow)?;
+                bal.amount = bal
+                    .amount
+                    .checked_add(premine)
+                    .ok_or(ProgramError::Overflow)?;
                 bal.is_initialized = true;
                 accounts[1].write_data(&bal)?;
             }
         }
 
         RuneInstruction::Mint => {
-            if accounts.len() < 3 { return Err(ProgramError::NotEnoughAccounts); }
+            if accounts.len() < 3 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             accounts[2].require_signer()?; // etcher/minter/owner must sign
 
             let rune_key = accounts[0].key;
             let mut rune: RuneEtching = accounts[0].read_data()?;
-            if !rune.is_etched { return Err(ProgramError::NotInitialized); }
+            if !rune.is_etched {
+                return Err(ProgramError::NotInitialized);
+            }
 
             let mut terms = rune.terms.clone().ok_or(ProgramError::Unauthorized)?;
 
@@ -244,29 +281,45 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
                 return Err(ProgramError::Unauthorized);
             }
             // Enforce the open window (timestamps; 0 = unbounded).
-            if terms.start != 0 && timestamp < terms.start { return Err(ProgramError::Unauthorized); }
-            if terms.end != 0 && timestamp > terms.end { return Err(ProgramError::LoanExpired); }
+            if terms.start != 0 && timestamp < terms.start {
+                return Err(ProgramError::Unauthorized);
+            }
+            if terms.end != 0 && timestamp > terms.end {
+                return Err(ProgramError::LoanExpired);
+            }
 
             let amount = terms.amount;
             terms.mints = terms.mints.checked_add(1).ok_or(ProgramError::Overflow)?;
             rune.terms = Some(terms);
-            rune.minted = rune.minted.checked_add(amount).ok_or(ProgramError::Overflow)?;
+            rune.minted = rune
+                .minted
+                .checked_add(amount)
+                .ok_or(ProgramError::Overflow)?;
             accounts[0].write_data(&rune)?;
 
             let mut bal: RuneBalance = accounts[1].read_data().unwrap_or_default();
             bal.rune = rune_key;
-            if bal.owner == Pubkey::default() { bal.owner = accounts[2].key; }
-            bal.amount = bal.amount.checked_add(amount).ok_or(ProgramError::Overflow)?;
+            if bal.owner == Pubkey::default() {
+                bal.owner = accounts[2].key;
+            }
+            bal.amount = bal
+                .amount
+                .checked_add(amount)
+                .ok_or(ProgramError::Overflow)?;
             bal.is_initialized = true;
             accounts[1].write_data(&bal)?;
         }
 
         RuneInstruction::Transfer { amount } => {
-            if accounts.len() < 3 { return Err(ProgramError::NotEnoughAccounts); }
+            if accounts.len() < 3 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             accounts[2].require_signer()?; // etcher/minter/owner must sign
 
             let mut src: RuneBalance = accounts[0].read_data()?;
-            if !src.is_initialized { return Err(ProgramError::NotInitialized); }
+            if !src.is_initialized {
+                return Err(ProgramError::NotInitialized);
+            }
             let mut dst: RuneBalance = accounts[1].read_data().unwrap_or_default();
 
             // Destination must hold the same rune (or be fresh).
@@ -274,10 +327,18 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
                 return Err(ProgramError::InvalidAccountData);
             }
 
-            src.amount = src.amount.checked_sub(amount).ok_or(ProgramError::InsufficientFunds)?;
+            src.amount = src
+                .amount
+                .checked_sub(amount)
+                .ok_or(ProgramError::InsufficientFunds)?;
             dst.rune = src.rune;
-            if dst.owner == Pubkey::default() { dst.owner = accounts[1].key; }
-            dst.amount = dst.amount.checked_add(amount).ok_or(ProgramError::Overflow)?;
+            if dst.owner == Pubkey::default() {
+                dst.owner = accounts[1].key;
+            }
+            dst.amount = dst
+                .amount
+                .checked_add(amount)
+                .ok_or(ProgramError::Overflow)?;
             dst.is_initialized = true;
 
             accounts[0].write_data(&src)?;
@@ -285,25 +346,39 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
         }
 
         RuneInstruction::Burn { amount } => {
-            if accounts.len() < 3 { return Err(ProgramError::NotEnoughAccounts); }
+            if accounts.len() < 3 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             accounts[2].require_signer()?; // etcher/minter/owner must sign
 
             let mut rune: RuneEtching = accounts[0].read_data()?;
             let mut src: RuneBalance = accounts[1].read_data()?;
-            if !src.is_initialized { return Err(ProgramError::NotInitialized); }
+            if !src.is_initialized {
+                return Err(ProgramError::NotInitialized);
+            }
 
-            src.amount = src.amount.checked_sub(amount).ok_or(ProgramError::InsufficientFunds)?;
-            rune.burned = rune.burned.checked_add(amount).ok_or(ProgramError::Overflow)?;
+            src.amount = src
+                .amount
+                .checked_sub(amount)
+                .ok_or(ProgramError::InsufficientFunds)?;
+            rune.burned = rune
+                .burned
+                .checked_add(amount)
+                .ok_or(ProgramError::Overflow)?;
 
             accounts[0].write_data(&rune)?;
             accounts[1].write_data(&src)?;
         }
 
         RuneInstruction::InitBalance => {
-            if accounts.len() < 2 { return Err(ProgramError::NotEnoughAccounts); }
+            if accounts.len() < 2 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             let owner = accounts[1].key;
             let mut bal: RuneBalance = accounts[0].read_data().unwrap_or_default();
-            if bal.is_initialized { return Err(ProgramError::AlreadyInitialized); }
+            if bal.is_initialized {
+                return Err(ProgramError::AlreadyInitialized);
+            }
             bal.owner = owner;
             bal.is_initialized = true;
             accounts[0].write_data(&bal)?;
@@ -318,7 +393,9 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
 mod tests {
     use super::*;
 
-    fn prog() -> Pubkey { himsha_runtime::program_ids::runes_program() }
+    fn prog() -> Pubkey {
+        himsha_runtime::program_ids::runes_program()
+    }
 
     fn acc(seed: &str, space: usize) -> AccountInfo {
         AccountInfo::new(Pubkey::from_seed(seed.as_bytes()), prog(), 0, space)
@@ -326,7 +403,11 @@ mod tests {
 
     fn etch_accounts() -> Vec<AccountInfo> {
         // accounts[2] (etcher/minter/owner) signs every rune action.
-        vec![acc("rune", 512), acc("etcher-bal", 256), acc("etcher", 0).as_signer()]
+        vec![
+            acc("rune", 512),
+            acc("etcher-bal", 256),
+            acc("etcher", 0).as_signer(),
+        ]
     }
 
     fn etched(premine: u64, terms: Option<MintTerms>) -> Vec<AccountInfo> {
@@ -337,7 +418,8 @@ mod tests {
             divisibility: 2,
             premine,
             terms,
-        }).unwrap();
+        })
+        .unwrap();
         process(&mut accounts, &ix, 1_000).unwrap();
         accounts
     }
@@ -357,30 +439,55 @@ mod tests {
     fn test_etch_twice_fails() {
         let mut accounts = etched(0, None);
         let ix = borsh::to_vec(&RuneInstruction::Etch {
-            name: "X".into(), symbol: 0, divisibility: 0, premine: 0, terms: None,
-        }).unwrap();
-        assert_eq!(process(&mut accounts, &ix, 1_000), Err(ProgramError::AlreadyInitialized));
+            name: "X".into(),
+            symbol: 0,
+            divisibility: 0,
+            premine: 0,
+            terms: None,
+        })
+        .unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 1_000),
+            Err(ProgramError::AlreadyInitialized)
+        );
     }
 
     #[test]
     fn test_etch_divisibility_too_high() {
         let mut accounts = etch_accounts();
         let ix = borsh::to_vec(&RuneInstruction::Etch {
-            name: "X".into(), symbol: 0, divisibility: 39, premine: 0, terms: None,
-        }).unwrap();
-        assert_eq!(process(&mut accounts, &ix, 1_000), Err(ProgramError::InvalidInstruction));
+            name: "X".into(),
+            symbol: 0,
+            divisibility: 39,
+            premine: 0,
+            terms: None,
+        })
+        .unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 1_000),
+            Err(ProgramError::InvalidInstruction)
+        );
     }
 
     #[test]
     fn test_open_mint_respects_cap() {
-        let terms = MintTerms { amount: 100, cap: 2, mints: 0, start: 0, end: 0 };
+        let terms = MintTerms {
+            amount: 100,
+            cap: 2,
+            mints: 0,
+            start: 0,
+            end: 0,
+        };
         let mut accounts = etched(0, Some(terms));
         // reuse balance slot index 1 as the mint destination
         let mint_ix = borsh::to_vec(&RuneInstruction::Mint).unwrap();
         process(&mut accounts, &mint_ix, 2_000).unwrap();
         process(&mut accounts, &mint_ix, 2_000).unwrap();
         // third mint exceeds cap
-        assert_eq!(process(&mut accounts, &mint_ix, 2_000), Err(ProgramError::Unauthorized));
+        assert_eq!(
+            process(&mut accounts, &mint_ix, 2_000),
+            Err(ProgramError::Unauthorized)
+        );
 
         let rune: RuneEtching = accounts[0].read_data().unwrap();
         assert_eq!(rune.minted, 200);
@@ -392,18 +499,33 @@ mod tests {
     fn test_mint_without_terms_fails() {
         let mut accounts = etched(0, None);
         let mint_ix = borsh::to_vec(&RuneInstruction::Mint).unwrap();
-        assert_eq!(process(&mut accounts, &mint_ix, 2_000), Err(ProgramError::Unauthorized));
+        assert_eq!(
+            process(&mut accounts, &mint_ix, 2_000),
+            Err(ProgramError::Unauthorized)
+        );
     }
 
     #[test]
     fn test_mint_outside_window_fails() {
-        let terms = MintTerms { amount: 100, cap: 0, mints: 0, start: 5_000, end: 9_000 };
+        let terms = MintTerms {
+            amount: 100,
+            cap: 0,
+            mints: 0,
+            start: 5_000,
+            end: 9_000,
+        };
         let mut accounts = etched(0, Some(terms));
         let mint_ix = borsh::to_vec(&RuneInstruction::Mint).unwrap();
         // before start
-        assert_eq!(process(&mut accounts, &mint_ix, 1_000), Err(ProgramError::Unauthorized));
+        assert_eq!(
+            process(&mut accounts, &mint_ix, 1_000),
+            Err(ProgramError::Unauthorized)
+        );
         // after end
-        assert_eq!(process(&mut accounts, &mint_ix, 10_000), Err(ProgramError::LoanExpired));
+        assert_eq!(
+            process(&mut accounts, &mint_ix, 10_000),
+            Err(ProgramError::LoanExpired)
+        );
         // inside window
         process(&mut accounts, &mint_ix, 6_000).unwrap();
     }
@@ -414,7 +536,11 @@ mod tests {
         // accounts: [rune, etcher-bal(500), etcher]; add a destination balance.
         accounts.push(acc("dst", 256));
         // transfer 200 from etcher-bal (idx1) -> dst (idx3): build a 3-account window
-        let mut window = vec![accounts[1].clone(), accounts[3].clone(), accounts[2].clone()];
+        let mut window = vec![
+            accounts[1].clone(),
+            accounts[3].clone(),
+            accounts[2].clone(),
+        ];
         let ix = borsh::to_vec(&RuneInstruction::Transfer { amount: 200 }).unwrap();
         process(&mut window, &ix, 1_000).unwrap();
         let src: RuneBalance = window[0].read_data().unwrap();
@@ -424,7 +550,10 @@ mod tests {
 
         // overspend fails
         let ix = borsh::to_vec(&RuneInstruction::Transfer { amount: 9_999 }).unwrap();
-        assert_eq!(process(&mut window, &ix, 1_000), Err(ProgramError::InsufficientFunds));
+        assert_eq!(
+            process(&mut window, &ix, 1_000),
+            Err(ProgramError::InsufficientFunds)
+        );
     }
 
     #[test]

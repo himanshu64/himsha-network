@@ -35,8 +35,14 @@ pub fn drain_lending(accounts: &mut [AccountInfo], indexer: Option<&BitcoinIndex
                         }
                     };
                     match result {
-                        Ok(txid) => info!("settled {:?} for {} via bitcoin tx {txid}", s.kind, s.inscription_id),
-                        Err(e) => error!("settlement {:?} for {} failed: {e}", s.kind, s.inscription_id),
+                        Ok(txid) => info!(
+                            "settled {:?} for {} via bitcoin tx {txid}",
+                            s.kind, s.inscription_id
+                        ),
+                        Err(e) => error!(
+                            "settlement {:?} for {} failed: {e}",
+                            s.kind, s.inscription_id
+                        ),
                     }
                 }
                 None => info!(

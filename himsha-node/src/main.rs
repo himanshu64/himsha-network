@@ -1,8 +1,6 @@
 use anyhow::Result;
 use himsha_node::{
-    bitcoin_indexer::BitcoinIndexer,
-    block_producer::BlockProducer,
-    rpc::HimshaRpcServer,
+    bitcoin_indexer::BitcoinIndexer, block_producer::BlockProducer, rpc::HimshaRpcServer,
     state::NodeState,
 };
 use himsha_runtime::{
@@ -15,11 +13,7 @@ use himsha_vm::{
     executor::{ExecutionInput, ProgramExecutor},
     registry::ProgramRegistry,
 };
-use jsonrpsee::{
-    core::RpcResult,
-    server::Server,
-    types::ErrorObjectOwned,
-};
+use jsonrpsee::{core::RpcResult, server::Server, types::ErrorObjectOwned};
 use std::{
     collections::HashMap,
     net::SocketAddr,
@@ -42,8 +36,8 @@ fn chain_id_for_network(network: &str) -> u64 {
     match network {
         "mainnet" | "bitcoin" => 1,
         "testnet" => 2,
-        "signet"  => 3,
-        _          => 4, // regtest / default
+        "signet" => 3,
+        _ => 4, // regtest / default
     }
 }
 
@@ -62,24 +56,37 @@ impl HimshaNode {
     /// everything else settles on-chain via the Bitcoin indexer. Followers reuse the
     /// no-payment `settlement::drain_lending` instead.
     async fn settle_lending(&self, accounts: &mut [AccountInfo], himsha_txid: [u8; 32]) {
-        use himsha_node::lightning::{is_invoice, LightningClient};
         use himsha_lending_program::{take_settlements, CollectionAccount, SettlementKind};
+        use himsha_node::lightning::{is_invoice, LightningClient};
 
         let indexer = BitcoinIndexer::from_env();
         let lightning = LightningClient::from_env();
 
         for account in accounts.iter_mut() {
-            let mut coll: CollectionAccount = match account.read_data() { Ok(c) => c, Err(_) => continue };
-            if coll.pending_settlements.is_empty() { continue; }
+            let mut coll: CollectionAccount = match account.read_data() {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            if coll.pending_settlements.is_empty() {
+                continue;
+            }
             for s in take_settlements(&mut coll) {
                 // Lightning fast-path: a repayment addressed to a BOLT-11 invoice.
                 if matches!(s.kind, SettlementKind::Repayment) && is_invoice(&s.recipient) {
                     match &lightning {
                         Some(ln) => match ln.pay_invoice(&s.recipient).await {
-                            Ok(h) => info!("settled {} over Lightning (payment_hash={h})", s.inscription_id),
-                            Err(e) => error!("Lightning repayment for {} failed: {e}", s.inscription_id),
+                            Ok(h) => info!(
+                                "settled {} over Lightning (payment_hash={h})",
+                                s.inscription_id
+                            ),
+                            Err(e) => {
+                                error!("Lightning repayment for {} failed: {e}", s.inscription_id)
+                            }
                         },
-                        None => info!("repayment for {} is a Lightning invoice but LND is not configured", s.inscription_id),
+                        None => info!(
+                            "repayment for {} is a Lightning invoice but LND is not configured",
+                            s.inscription_id
+                        ),
                     }
                     continue;
                 }
@@ -88,12 +95,19 @@ impl HimshaNode {
                     Some(ix) => {
                         let r = match s.kind {
                             SettlementKind::Repayment => ix.send_payment(&s.recipient, s.amount),
-                            SettlementKind::ReturnInscription | SettlementKind::SeizeInscription =>
-                                ix.transfer_utxo(&hex::encode(s.utxo.txid), s.utxo.vout, &s.recipient),
+                            SettlementKind::ReturnInscription
+                            | SettlementKind::SeizeInscription => ix.transfer_utxo(
+                                &hex::encode(s.utxo.txid),
+                                s.utxo.vout,
+                                &s.recipient,
+                            ),
                         };
                         match r {
                             Ok(txid) => {
-                                info!("settled {:?} for {} via bitcoin tx {txid}", s.kind, s.inscription_id);
+                                info!(
+                                    "settled {:?} for {} via bitcoin tx {txid}",
+                                    s.kind, s.inscription_id
+                                );
                                 // Index bitcoin_txid -> himsha_txid (settlement lookup).
                                 if let Ok(raw) = hex::decode(&txid) {
                                     if let Ok(btc) = <[u8; 32]>::try_from(raw.as_slice()) {
@@ -101,10 +115,16 @@ impl HimshaNode {
                                     }
                                 }
                             }
-                            Err(e) => error!("settlement {:?} for {} failed: {e}", s.kind, s.inscription_id),
+                            Err(e) => error!(
+                                "settlement {:?} for {} failed: {e}",
+                                s.kind, s.inscription_id
+                            ),
                         }
                     }
-                    None => info!("settlement {:?} for {} queued (no Bitcoin RPC)", s.kind, s.inscription_id),
+                    None => info!(
+                        "settlement {:?} for {} queued (no Bitcoin RPC)",
+                        s.kind, s.inscription_id
+                    ),
                 }
             }
             if account.write_data(&coll).is_err() {
@@ -126,7 +146,7 @@ fn bitcoin_network() -> bitcoin::Network {
     match std::env::var("HIMSHA_NETWORK").as_deref() {
         Ok("mainnet") | Ok("bitcoin") => bitcoin::Network::Bitcoin,
         Ok("testnet") => bitcoin::Network::Testnet,
-        Ok("signet")  => bitcoin::Network::Signet,
+        Ok("signet") => bitcoin::Network::Signet,
         _ => bitcoin::Network::Regtest,
     }
 }
@@ -135,13 +155,22 @@ fn bitcoin_network() -> bitcoin::Network {
 /// (`HIMSHA_FAUCET_MAX`, default 1_000_000_000 lamports).
 fn faucet_guard(lamports: u64) -> Result<(), ErrorObjectOwned> {
     if std::env::var("HIMSHA_FAUCET").as_deref() != Ok("1") {
-        return Err(ErrorObjectOwned::owned(-32020, "faucet disabled (set HIMSHA_FAUCET=1)", None::<()>));
+        return Err(ErrorObjectOwned::owned(
+            -32020,
+            "faucet disabled (set HIMSHA_FAUCET=1)",
+            None::<()>,
+        ));
     }
-    let max = std::env::var("HIMSHA_FAUCET_MAX").ok()
+    let max = std::env::var("HIMSHA_FAUCET_MAX")
+        .ok()
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(1_000_000_000);
     if lamports > max {
-        return Err(ErrorObjectOwned::owned(-32029, format!("amount exceeds faucet cap {max}"), None::<()>));
+        return Err(ErrorObjectOwned::owned(
+            -32029,
+            format!("amount exceeds faucet cap {max}"),
+            None::<()>,
+        ));
     }
     Ok(())
 }
@@ -151,13 +180,21 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
     async fn send_transaction(&self, tx: RuntimeTransaction) -> RpcResult<String> {
         // 1. Verify every signer's BIP-340 Schnorr signature over the message hash.
         if !tx.verify_signatures() {
-            return Err(ErrorObjectOwned::owned(-32000, "invalid transaction signature", None::<()>));
+            return Err(ErrorObjectOwned::owned(
+                -32000,
+                "invalid transaction signature",
+                None::<()>,
+            ));
         }
 
         // 2. Replay protection: the chain id must match and the recent_blockhash must
         //    still be within the node's recent window (it expires once it ages out).
-        let valid = self.state.recent_blockhashes(MAX_BLOCKHASH_AGE)
-            .map_err(|e| ErrorObjectOwned::owned(-32603, format!("state error: {e}"), None::<()>))?;
+        let valid = self
+            .state
+            .recent_blockhashes(MAX_BLOCKHASH_AGE)
+            .map_err(|e| {
+                ErrorObjectOwned::owned(-32603, format!("state error: {e}"), None::<()>)
+            })?;
         if let Err(reason) = tx.check_chain_and_blockhash(self.chain_id, &valid) {
             return Err(ErrorObjectOwned::owned(-32001, reason, None::<()>));
         }
@@ -166,7 +203,11 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         //    validity window). Caught for any tx already included in a block.
         let txid = tx.message_hash();
         if self.state.tx_slot(&txid).ok().flatten().is_some() {
-            return Err(ErrorObjectOwned::owned(-32002, "duplicate transaction", None::<()>));
+            return Err(ErrorObjectOwned::owned(
+                -32002,
+                "duplicate transaction",
+                None::<()>,
+            ));
         }
 
         let tx_id = hex::encode(txid);
@@ -219,14 +260,19 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
                     // Gate on the execution receipt: it must commit to exactly the
                     // accounts the program produced before any of them are persisted.
                     transition.verify().map_err(|reason| {
-                        ErrorObjectOwned::owned(-32004, format!("invalid execution receipt: {reason}"), None::<()>)
+                        ErrorObjectOwned::owned(
+                            -32004,
+                            format!("invalid execution receipt: {reason}"),
+                            None::<()>,
+                        )
                     })?;
 
                     // Settle Ordinals loans: drain the lending program's queued
                     // settlements (return/seize inscription, pay lender) and move
                     // the UTXOs on Bitcoin. The cleared collection is then persisted.
                     if instr.program_id == himsha_runtime::program_ids::lending_program() {
-                        self.settle_lending(&mut transition.updated_accounts, tx.message_hash()).await;
+                        self.settle_lending(&mut transition.updated_accounts, tx.message_hash())
+                            .await;
                     }
 
                     // Stage updated accounts into the overlay (not yet persisted).
@@ -243,9 +289,9 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         }
 
         // 5. Commit every account the transaction touched in one write transaction.
-        self.state.save_accounts_atomic(&overlay).map_err(|e| {
-            ErrorObjectOwned::owned(-32001, e.to_string(), None::<()>)
-        })?;
+        self.state
+            .save_accounts_atomic(&overlay)
+            .map_err(|e| ErrorObjectOwned::owned(-32001, e.to_string(), None::<()>))?;
 
         // 6. Queue for block inclusion
         let _ = self.pending_tx.send(tx).await;
@@ -335,7 +381,9 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             .load_account(&key)
             .map_err(|e| ErrorObjectOwned::owned(-32022, e.to_string(), None::<()>))?
             .map(|s| s.into_account(key))
-            .unwrap_or_else(|| AccountInfo::new(key, himsha_runtime::program_ids::system_program(), 0, 0));
+            .unwrap_or_else(|| {
+                AccountInfo::new(key, himsha_runtime::program_ids::system_program(), 0, 0)
+            });
         account.lamports = account.lamports.saturating_add(lamports);
         let stored = StoredAccount::from(&account);
         self.state
@@ -344,16 +392,28 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         Ok(account.lamports)
     }
 
-    async fn create_account_with_faucet(&self, pubkey: String, lamports: u64, space: u64) -> RpcResult<AccountInfo> {
+    async fn create_account_with_faucet(
+        &self,
+        pubkey: String,
+        lamports: u64,
+        space: u64,
+    ) -> RpcResult<AccountInfo> {
         faucet_guard(lamports)?;
         let key = Pubkey::from_base58(&pubkey)
             .map_err(|e| ErrorObjectOwned::owned(-32026, e, None::<()>))?;
         // Account creation: must not already exist.
         if self.state.account_exists(&key) {
-            return Err(ErrorObjectOwned::owned(-32027, "account already exists", None::<()>));
+            return Err(ErrorObjectOwned::owned(
+                -32027,
+                "account already exists",
+                None::<()>,
+            ));
         }
         let account = AccountInfo::new(
-            key, himsha_runtime::program_ids::system_program(), lamports, space as usize,
+            key,
+            himsha_runtime::program_ids::system_program(),
+            lamports,
+            space as usize,
         );
         self.state
             .save_account(&key, &StoredAccount::from(&account))
@@ -361,7 +421,10 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         Ok(account)
     }
 
-    async fn get_multiple_accounts(&self, pubkeys: Vec<String>) -> RpcResult<Vec<Option<AccountInfo>>> {
+    async fn get_multiple_accounts(
+        &self,
+        pubkeys: Vec<String>,
+    ) -> RpcResult<Vec<Option<AccountInfo>>> {
         let mut out = Vec::with_capacity(pubkeys.len());
         for p in pubkeys {
             let key = Pubkey::from_base58(&p)
@@ -376,7 +439,10 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         Ok(out)
     }
 
-    async fn get_processed_transaction(&self, txid: String) -> RpcResult<Option<RuntimeTransaction>> {
+    async fn get_processed_transaction(
+        &self,
+        txid: String,
+    ) -> RpcResult<Option<RuntimeTransaction>> {
         // Fast path: resolve the slot from the tx index (O(1)), then read that one block.
         if let Ok(raw) = hex::decode(&txid) {
             if let Ok(id) = <[u8; 32]>::try_from(raw.as_slice()) {
@@ -423,7 +489,9 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
                 if let Ok(block) = serde_json::from_slice::<Block>(&bytes) {
                     for tx in block.transactions {
                         out.push(tx);
-                        if (out.len() as u32) >= limit { break; }
+                        if (out.len() as u32) >= limit {
+                            break;
+                        }
                     }
                 }
             }
@@ -457,12 +525,20 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
         Ok(std::env::var("HIMSHA_NETWORK_PUBKEY").unwrap_or_default())
     }
 
-    async fn pre_vote(&self, term: u64, _candidate: String) -> RpcResult<himsha_node::election::VoteReply> {
+    async fn pre_vote(
+        &self,
+        term: u64,
+        _candidate: String,
+    ) -> RpcResult<himsha_node::election::VoteReply> {
         // Non-binding: read the current state without mutating term/vote.
         Ok(self.election.lock().unwrap().consider_pre_vote(term))
     }
 
-    async fn request_vote(&self, term: u64, candidate: String) -> RpcResult<himsha_node::election::VoteReply> {
+    async fn request_vote(
+        &self,
+        term: u64,
+        candidate: String,
+    ) -> RpcResult<himsha_node::election::VoteReply> {
         let mut s = self.election.lock().unwrap();
         Ok(s.consider_vote(term, &candidate))
     }
@@ -501,8 +577,9 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
     async fn get_txid_from_btc_txid(&self, btc_txid: String) -> RpcResult<Option<String>> {
         let raw = hex::decode(&btc_txid)
             .map_err(|e| ErrorObjectOwned::owned(-32051, e.to_string(), None::<()>))?;
-        let btc = <[u8; 32]>::try_from(raw.as_slice())
-            .map_err(|_| ErrorObjectOwned::owned(-32052, "btc_txid must be 32 bytes (hex)", None::<()>))?;
+        let btc = <[u8; 32]>::try_from(raw.as_slice()).map_err(|_| {
+            ErrorObjectOwned::owned(-32052, "btc_txid must be 32 bytes (hex)", None::<()>)
+        })?;
         let himsha = self
             .state
             .himsha_txid_for_btc(&btc)
@@ -516,14 +593,24 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             .stats()
             .map_err(|e| ErrorObjectOwned::owned(-32054, e.to_string(), None::<()>))?;
         let programs = self.registry.lock().unwrap().list().len() as u64;
-        Ok(himsha_node::rpc::NodeStats { accounts, transactions, tip_slot, programs })
+        Ok(himsha_node::rpc::NodeStats {
+            accounts,
+            transactions,
+            tip_slot,
+            programs,
+        })
     }
 }
 
 /// Resolve the configured Lightning client or a clear "not configured" error.
 fn lightning_or_err() -> Result<himsha_node::lightning::LightningClient, ErrorObjectOwned> {
-    himsha_node::lightning::LightningClient::from_env()
-        .ok_or_else(|| ErrorObjectOwned::owned(-32040, "lightning not configured (set LND_REST_URL, LND_MACAROON_HEX)", None::<()>))
+    himsha_node::lightning::LightningClient::from_env().ok_or_else(|| {
+        ErrorObjectOwned::owned(
+            -32040,
+            "lightning not configured (set LND_REST_URL, LND_MACAROON_HEX)",
+            None::<()>,
+        )
+    })
 }
 
 // ---- main ----
@@ -566,7 +653,10 @@ async fn main() -> Result<()> {
         {
             // ZK path: every built-in is proven through the universal guest ELF.
             himsha_vm::zk::register_builtins(&mut reg);
-            info!("registered {} built-in programs (zkVM guest)", reg.list().len());
+            info!(
+                "registered {} built-in programs (zkVM guest)",
+                reg.list().len()
+            );
         }
         #[cfg(not(feature = "zkvm"))]
         {
@@ -575,7 +665,10 @@ async fn main() -> Result<()> {
             for id in himsha_runtime::program_ids::builtins() {
                 reg.register(id, Vec::new(), [0u8; 32]);
             }
-            info!("registered {} built-in programs (native dispatch)", reg.list().len());
+            info!(
+                "registered {} built-in programs (native dispatch)",
+                reg.list().len()
+            );
         }
     }
 
@@ -593,34 +686,50 @@ async fn main() -> Result<()> {
             // is enabled (HIMSHA_FAILOVER_MISSES) and the primary goes unreachable,
             // self-promote to sequencer and start producing from the replicated tip.
             let interval_secs = std::env::var("HIMSHA_FOLLOW_INTERVAL_SECS")
-                .ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(2);
+                .ok()
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(2);
             let max_misses = std::env::var("HIMSHA_FAILOVER_MISSES")
-                .ok().and_then(|s| s.parse::<u32>().ok());
+                .ok()
+                .and_then(|s| s.parse::<u32>().ok());
             // Higher-priority standbys to defer to (comma-separated URLs) for
             // split-brain-safe election; empty = this node is top priority.
             let higher_peers: Vec<String> = std::env::var("HIMSHA_STANDBY_PEERS")
                 .ok()
-                .map(|s| s.split(',').map(|p| p.trim().to_string()).filter(|p| !p.is_empty()).collect())
+                .map(|s| {
+                    s.split(',')
+                        .map(|p| p.trim().to_string())
+                        .filter(|p| !p.is_empty())
+                        .collect()
+                })
                 .unwrap_or_default();
             // Quorum election (partition-safe): full electable member set + this node's id.
             let members: Vec<String> = std::env::var("HIMSHA_ELECTION_MEMBERS")
                 .ok()
-                .map(|s| s.split(',').map(|p| p.trim().to_string()).filter(|p| !p.is_empty()).collect())
+                .map(|s| {
+                    s.split(',')
+                        .map(|p| p.trim().to_string())
+                        .filter(|p| !p.is_empty())
+                        .collect()
+                })
                 .unwrap_or_default();
             let f_state = state.clone();
             let f_reg = registry.clone();
             let f_election = election.clone();
             let f_self = self_id.clone();
             tokio::spawn(async move {
-                let follower = himsha_node::follower::Follower::new(f_state.clone(), f_reg, primary_url)
-                    .with_higher_peers(higher_peers)
-                    .with_election(f_election, members, f_self);
+                let follower =
+                    himsha_node::follower::Follower::new(f_state.clone(), f_reg, primary_url)
+                        .with_higher_peers(higher_peers)
+                        .with_election(f_election, members, f_self);
                 let promote = follower
                     .run_until_promote(std::time::Duration::from_secs(interval_secs), max_misses)
                     .await;
                 if promote {
                     info!("FAILOVER: promoted to sequencer — block production enabled");
-                    himsha_node::block_producer::BlockProducer::new(f_state, pending_rx).run().await;
+                    himsha_node::block_producer::BlockProducer::new(f_state, pending_rx)
+                        .run()
+                        .await;
                 }
             });
             match max_misses {

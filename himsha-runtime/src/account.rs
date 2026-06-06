@@ -4,7 +4,18 @@ use serde::{Deserialize, Serialize};
 use crate::{error::ProgramError, pubkey::Pubkey, utxo::UtxoMeta};
 
 /// Lifecycle state for token / data accounts.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Default,
+    BorshSerialize,
+    BorshDeserialize,
+    Serialize,
+    Deserialize,
+)]
 pub enum AccountState {
     #[default]
     Uninitialized,
@@ -22,10 +33,18 @@ pub struct AccountMeta {
 
 impl AccountMeta {
     pub fn writable(pubkey: Pubkey, is_signer: bool) -> Self {
-        Self { pubkey, is_signer, is_writable: true }
+        Self {
+            pubkey,
+            is_signer,
+            is_writable: true,
+        }
     }
     pub fn readonly(pubkey: Pubkey, is_signer: bool) -> Self {
-        Self { pubkey, is_signer, is_writable: false }
+        Self {
+            pubkey,
+            is_signer,
+            is_writable: false,
+        }
     }
 }
 
@@ -108,7 +127,11 @@ impl AccountInfo {
 
     /// Require that this account signed the instruction.
     pub fn require_signer(&self) -> Result<(), ProgramError> {
-        if self.is_signer { Ok(()) } else { Err(ProgramError::MissingSigner) }
+        if self.is_signer {
+            Ok(())
+        } else {
+            Err(ProgramError::MissingSigner)
+        }
     }
 
     pub fn read_data<T: BorshDeserialize>(&self) -> Result<T, ProgramError> {
@@ -130,23 +153,23 @@ impl AccountInfo {
 /// Compact form stored in redb (avoids storing the key twice).
 #[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
 pub struct StoredAccount {
-    pub lamports:   u64,
-    pub data:       Vec<u8>,
-    pub owner:      [u8; 32],
+    pub lamports: u64,
+    pub data: Vec<u8>,
+    pub owner: [u8; 32],
     pub executable: bool,
-    pub utxo_txid:  Option<[u8; 32]>,
-    pub utxo_vout:  Option<u32>,
+    pub utxo_txid: Option<[u8; 32]>,
+    pub utxo_vout: Option<u32>,
 }
 
 impl From<&AccountInfo> for StoredAccount {
     fn from(a: &AccountInfo) -> Self {
         Self {
-            lamports:   a.lamports,
-            data:       a.data.clone(),
-            owner:      a.owner.into(),
+            lamports: a.lamports,
+            data: a.data.clone(),
+            owner: a.owner.into(),
             executable: a.executable,
-            utxo_txid:  a.utxo.map(|u| u.txid),
-            utxo_vout:  a.utxo.map(|u| u.vout),
+            utxo_txid: a.utxo.map(|u| u.txid),
+            utxo_vout: a.utxo.map(|u| u.vout),
         }
     }
 }
@@ -172,13 +195,16 @@ impl StoredAccount {
     pub fn into_account(self, key: Pubkey) -> AccountInfo {
         AccountInfo {
             key,
-            lamports:   self.lamports,
-            data:       self.data,
-            owner:      Pubkey::from(self.owner),
+            lamports: self.lamports,
+            data: self.data,
+            owner: Pubkey::from(self.owner),
             executable: self.executable,
-            is_signer:  false, // transient; set per-instruction by the node
+            is_signer: false,  // transient; set per-instruction by the node
             is_writable: true, // transient; node overrides per-instruction from AccountMeta
-            utxo: self.utxo_txid.zip(self.utxo_vout).map(|(txid, vout)| UtxoMeta { txid, vout }),
+            utxo: self
+                .utxo_txid
+                .zip(self.utxo_vout)
+                .map(|(txid, vout)| UtxoMeta { txid, vout }),
         }
     }
 }

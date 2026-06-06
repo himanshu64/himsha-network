@@ -18,8 +18,8 @@
 
 use std::collections::BTreeMap;
 
-use frost_secp256k1 as frost;
 use frost::Identifier;
+use frost_secp256k1 as frost;
 use thiserror::Error;
 
 pub mod taproot;
@@ -50,7 +50,9 @@ pub struct RobustSignature {
 }
 
 impl From<frost::Error> for ThresholdError {
-    fn from(e: frost::Error) -> Self { ThresholdError::Frost(e.to_string()) }
+    fn from(e: frost::Error) -> Self {
+        ThresholdError::Frost(e.to_string())
+    }
 }
 
 /// An M-of-N FROST signing committee holding the settlement key shares.
@@ -79,7 +81,11 @@ impl Committee {
         for (id, secret_share) in shares {
             key_packages.insert(id, frost::keys::KeyPackage::try_from(secret_share)?);
         }
-        Ok(Self { threshold, key_packages, pubkeys })
+        Ok(Self {
+            threshold,
+            key_packages,
+            pubkeys,
+        })
     }
 
     /// Generate the committee via **distributed key generation** (DKG) — no trusted
@@ -108,8 +114,11 @@ impl Committee {
         let mut r2_inbox: BTreeMap<Identifier, BTreeMap<Identifier, dkg::round2::Package>> =
             ids.iter().map(|id| (*id, BTreeMap::new())).collect();
         for id in &ids {
-            let others: BTreeMap<Identifier, dkg::round1::Package> =
-                r1_pkg.iter().filter(|(k, _)| **k != *id).map(|(k, v)| (*k, v.clone())).collect();
+            let others: BTreeMap<Identifier, dkg::round1::Package> = r1_pkg
+                .iter()
+                .filter(|(k, _)| **k != *id)
+                .map(|(k, v)| (*k, v.clone()))
+                .collect();
             let secret = r1_secret.remove(id).unwrap();
             let (sec2, outgoing) = dkg::part2(secret, &others)?;
             r2_secret.insert(*id, sec2);
@@ -122,18 +131,29 @@ impl Committee {
         let mut key_packages = BTreeMap::new();
         let mut pubkeys: Option<frost::keys::PublicKeyPackage> = None;
         for id in &ids {
-            let others: BTreeMap<Identifier, dkg::round1::Package> =
-                r1_pkg.iter().filter(|(k, _)| **k != *id).map(|(k, v)| (*k, v.clone())).collect();
+            let others: BTreeMap<Identifier, dkg::round1::Package> = r1_pkg
+                .iter()
+                .filter(|(k, _)| **k != *id)
+                .map(|(k, v)| (*k, v.clone()))
+                .collect();
             let (kp, pubpkg) = dkg::part3(&r2_secret[id], &others, &r2_inbox[id])?;
             key_packages.insert(*id, kp);
             pubkeys = Some(pubpkg);
         }
 
-        Ok(Self { threshold, key_packages, pubkeys: pubkeys.expect("at least one participant") })
+        Ok(Self {
+            threshold,
+            key_packages,
+            pubkeys: pubkeys.expect("at least one participant"),
+        })
     }
 
-    pub fn threshold(&self) -> u16 { self.threshold }
-    pub fn total(&self) -> usize { self.key_packages.len() }
+    pub fn threshold(&self) -> u16 {
+        self.threshold
+    }
+    pub fn total(&self) -> usize {
+        self.key_packages.len()
+    }
 
     /// All signer identifiers (e.g. for choosing a signing quorum).
     pub fn signer_ids(&self) -> Vec<Identifier> {
@@ -149,7 +169,10 @@ impl Committee {
     /// Runs both FROST rounds and aggregates into one Schnorr signature.
     pub fn sign(&self, message: &[u8], signers: &[Identifier]) -> Result<Vec<u8>, ThresholdError> {
         if (signers.len() as u16) < self.threshold {
-            return Err(ThresholdError::NotEnoughSigners { needed: self.threshold, got: signers.len() });
+            return Err(ThresholdError::NotEnoughSigners {
+                needed: self.threshold,
+                got: signers.len(),
+            });
         }
         let mut rng = rand::thread_rng();
 
@@ -157,7 +180,10 @@ impl Committee {
         let mut nonces = BTreeMap::new();
         let mut commitments = BTreeMap::new();
         for id in signers {
-            let kp = self.key_packages.get(id).ok_or(ThresholdError::UnknownSigner)?;
+            let kp = self
+                .key_packages
+                .get(id)
+                .ok_or(ThresholdError::UnknownSigner)?;
             let (n, c) = frost::round1::commit(kp.signing_share(), &mut rng);
             nonces.insert(*id, n);
             commitments.insert(*id, c);
@@ -169,14 +195,17 @@ impl Committee {
         // Round 2 — each signer produces a signature share.
         let mut shares = BTreeMap::new();
         for id in signers {
-            let kp = self.key_packages.get(id).ok_or(ThresholdError::UnknownSigner)?;
+            let kp = self
+                .key_packages
+                .get(id)
+                .ok_or(ThresholdError::UnknownSigner)?;
             let share = frost::round2::sign(&signing_package, &nonces[id], kp)?;
             shares.insert(*id, share);
         }
 
         // Aggregate the shares into a single group Schnorr signature.
         let group_sig = frost::aggregate(&signing_package, &shares, &self.pubkeys)?;
-        Ok(group_sig.serialize().map_err(ThresholdError::from)?)
+        group_sig.serialize().map_err(ThresholdError::from)
     }
 
     /// **ROAST-style robust signing.** Produce a valid aggregate signature even when
@@ -200,8 +229,11 @@ impl Committee {
         online: &[Identifier],
         disruptive: &[Identifier],
     ) -> Result<RobustSignature, ThresholdError> {
-        let mut candidates: Vec<Identifier> =
-            online.iter().copied().filter(|id| self.key_packages.contains_key(id)).collect();
+        let mut candidates: Vec<Identifier> = online
+            .iter()
+            .copied()
+            .filter(|id| self.key_packages.contains_key(id))
+            .collect();
         let mut excluded = 0usize;
         let mut rounds = 0u32;
         let mut rng = rand::thread_rng();
@@ -211,8 +243,11 @@ impl Committee {
                 return Err(ThresholdError::RobustExhausted { excluded });
             }
             rounds += 1;
-            let quorum: Vec<Identifier> =
-                candidates.iter().copied().take(self.threshold as usize).collect();
+            let quorum: Vec<Identifier> = candidates
+                .iter()
+                .copied()
+                .take(self.threshold as usize)
+                .collect();
 
             // Round 1 — nonce commitments from the chosen quorum.
             let mut nonces = BTreeMap::new();
@@ -231,7 +266,11 @@ impl Committee {
             let mut shares = BTreeMap::new();
             for id in &quorum {
                 let kp = &self.key_packages[id];
-                let pkg = if disruptive.contains(id) { &bad_package } else { &signing_package };
+                let pkg = if disruptive.contains(id) {
+                    &bad_package
+                } else {
+                    &signing_package
+                };
                 shares.insert(*id, frost::round2::sign(pkg, &nonces[id], kp)?);
             }
 
@@ -301,7 +340,10 @@ mod tests {
         let ids = committee.signer_ids();
         // Only 2 signers for a 3-of-5 committee → refused before signing.
         let err = committee.sign(b"msg", &ids[..2]).unwrap_err();
-        assert!(matches!(err, ThresholdError::NotEnoughSigners { needed: 3, got: 2 }));
+        assert!(matches!(
+            err,
+            ThresholdError::NotEnoughSigners { needed: 3, got: 2 }
+        ));
     }
 
     #[test]
@@ -346,7 +388,7 @@ mod tests {
         // Two disruptive signers (the ones the quorum picks first) get identified & dropped.
         let robust = committee.sign_robust(msg, &ids, &ids[..2]).unwrap();
         assert_eq!(robust.excluded, 2);
-        assert!(robust.rounds >= 3);                 // 2 culprit-discovery rounds + 1 clean
+        assert!(robust.rounds >= 3); // 2 culprit-discovery rounds + 1 clean
         assert!(committee.verify(msg, &robust.signature));
     }
 

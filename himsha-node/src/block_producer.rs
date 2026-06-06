@@ -33,7 +33,10 @@ impl BlockProducer {
 
             let slot = match self.state.advance_slot() {
                 Ok(s) => s,
-                Err(e) => { tracing::error!("advance_slot: {e}"); continue; }
+                Err(e) => {
+                    tracing::error!("advance_slot: {e}");
+                    continue;
+                }
             };
 
             let parent_slot = slot.saturating_sub(1);
@@ -54,7 +57,10 @@ impl BlockProducer {
                         tracing::error!("index_transaction slot={slot}: {e}");
                     }
                 }
-                info!("produced block slot={slot} txs={}", block.transactions.len());
+                info!(
+                    "produced block slot={slot} txs={}",
+                    block.transactions.len()
+                );
             }
         }
     }

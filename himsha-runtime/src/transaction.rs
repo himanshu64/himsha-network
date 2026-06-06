@@ -3,7 +3,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
-use crate::{instruction::Instruction, pubkey::{Keypair, Pubkey}, signature::Signature};
+use crate::{
+    instruction::Instruction,
+    pubkey::{Keypair, Pubkey},
+    signature::Signature,
+};
 
 /// The signable body of a HIMSHA transaction.
 ///
@@ -32,15 +36,30 @@ impl Message {
     /// `chain_id` = 0). Convenient for tests and internally-replayed blocks; a node
     /// enforcing replay protection will reject it (chain_id 0 / unknown blockhash).
     pub fn new(signers: Vec<Pubkey>, instructions: Vec<Instruction>, timestamp: u64) -> Self {
-        Self { signers, instructions, recent_blockhash: [0u8; 32], chain_id: 0, timestamp }
+        Self {
+            signers,
+            instructions,
+            recent_blockhash: [0u8; 32],
+            chain_id: 0,
+            timestamp,
+        }
     }
 
     /// Construct a replay-protected message bound to `recent_blockhash` and `chain_id`.
     pub fn new_signed(
-        signers: Vec<Pubkey>, instructions: Vec<Instruction>,
-        recent_blockhash: [u8; 32], chain_id: u64, timestamp: u64,
+        signers: Vec<Pubkey>,
+        instructions: Vec<Instruction>,
+        recent_blockhash: [u8; 32],
+        chain_id: u64,
+        timestamp: u64,
     ) -> Self {
-        Self { signers, instructions, recent_blockhash, chain_id, timestamp }
+        Self {
+            signers,
+            instructions,
+            recent_blockhash,
+            chain_id,
+            timestamp,
+        }
     }
 
     /// SHA-256 of the borsh-encoded message — this is what signers sign.
@@ -68,12 +87,20 @@ pub struct RuntimeTransaction {
 
 impl RuntimeTransaction {
     pub fn new(message: Message, signatures: Vec<Signature>) -> Self {
-        Self { version: 0, signatures, message }
+        Self {
+            version: 0,
+            signatures,
+            message,
+        }
     }
 
     pub fn unsigned(message: Message) -> Self {
         let n = message.signers.len();
-        Self { version: 0, signatures: vec![Signature::zeroed(); n], message }
+        Self {
+            version: 0,
+            signatures: vec![Signature::zeroed(); n],
+            message,
+        }
     }
 
     /// Build a fully-signed transaction: each keypair signs the message hash in the
@@ -83,7 +110,11 @@ impl RuntimeTransaction {
     pub fn signed(message: Message, keypairs: &[&Keypair]) -> Self {
         let h = message.hash();
         let signatures = keypairs.iter().map(|kp| kp.sign(&h)).collect();
-        Self { version: 0, signatures, message }
+        Self {
+            version: 0,
+            signatures,
+            message,
+        }
     }
 
     pub fn message_hash(&self) -> [u8; 32] {
@@ -115,7 +146,9 @@ impl RuntimeTransaction {
     /// recent-window set). Returns `Err(reason)` on failure. Signature verification
     /// ([`verify_signatures`](Self::verify_signatures)) and txid dedup are separate.
     pub fn check_chain_and_blockhash(
-        &self, chain_id: u64, valid_blockhashes: &HashSet<[u8; 32]>,
+        &self,
+        chain_id: u64,
+        valid_blockhashes: &HashSet<[u8; 32]>,
     ) -> Result<(), &'static str> {
         if self.message.chain_id != chain_id {
             return Err("wrong chain id");
@@ -130,22 +163,33 @@ impl RuntimeTransaction {
 /// A committed block produced by the HIMSHA node.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Block {
-    pub slot:         u64,
-    pub parent_slot:  u64,
+    pub slot: u64,
+    pub parent_slot: u64,
     pub transactions: Vec<RuntimeTransaction>,
     /// SHA-256 of (slot || all message hashes).
-    pub blockhash:    [u8; 32],
-    pub timestamp:    u64,
+    pub blockhash: [u8; 32],
+    pub timestamp: u64,
 }
 
 impl Block {
-    pub fn new(slot: u64, parent_slot: u64, transactions: Vec<RuntimeTransaction>, timestamp: u64) -> Self {
+    pub fn new(
+        slot: u64,
+        parent_slot: u64,
+        transactions: Vec<RuntimeTransaction>,
+        timestamp: u64,
+    ) -> Self {
         let mut h = Sha256::new();
         h.update(slot.to_le_bytes());
         for tx in &transactions {
             h.update(tx.message_hash());
         }
-        Self { slot, parent_slot, transactions, blockhash: h.finalize().into(), timestamp }
+        Self {
+            slot,
+            parent_slot,
+            transactions,
+            blockhash: h.finalize().into(),
+            timestamp,
+        }
     }
 }
 
@@ -172,8 +216,8 @@ mod tests {
     fn unsigned_tx_is_rejected() {
         let kp = Keypair::generate();
         let tx = RuntimeTransaction::unsigned(msg_for(vec![kp.pubkey()]));
-        assert!(tx.verify_signature_count());   // count is fine...
-        assert!(!tx.verify_signatures());       // ...but the zero signature fails
+        assert!(tx.verify_signature_count()); // count is fine...
+        assert!(!tx.verify_signatures()); // ...but the zero signature fails
     }
 
     #[test]
@@ -240,10 +284,16 @@ mod tests {
 
         let mut bh = tx.clone();
         bh.message.recent_blockhash = [8u8; 32];
-        assert!(!bh.verify_signatures(), "recent_blockhash must be bound into the signature");
+        assert!(
+            !bh.verify_signatures(),
+            "recent_blockhash must be bound into the signature"
+        );
 
         tx.message.chain_id = 2;
-        assert!(!tx.verify_signatures(), "chain_id must be bound into the signature");
+        assert!(
+            !tx.verify_signatures(),
+            "chain_id must be bound into the signature"
+        );
     }
 
     #[test]
@@ -259,7 +309,10 @@ mod tests {
         let kp = Keypair::generate();
         let tx = signed_with(&kp, [7u8; 32], 1);
         let valid: HashSet<[u8; 32]> = [[7u8; 32]].into_iter().collect();
-        assert_eq!(tx.check_chain_and_blockhash(2, &valid), Err("wrong chain id"));
+        assert_eq!(
+            tx.check_chain_and_blockhash(2, &valid),
+            Err("wrong chain id")
+        );
     }
 
     #[test]
@@ -268,6 +321,9 @@ mod tests {
         let tx = signed_with(&kp, [7u8; 32], 1);
         // The node's recent window no longer contains [7;32] (it aged out).
         let valid: HashSet<[u8; 32]> = [[9u8; 32]].into_iter().collect();
-        assert_eq!(tx.check_chain_and_blockhash(1, &valid), Err("blockhash not found or expired"));
+        assert_eq!(
+            tx.check_chain_and_blockhash(1, &valid),
+            Err("blockhash not found or expired")
+        );
     }
 }
