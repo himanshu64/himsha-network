@@ -1,0 +1,83 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HIMSHA Network — ZK-proven Bitcoin programmability">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A0D14"/>
+      <stop offset="0.55" stop-color="#0E1320"/>
+      <stop offset="1" stop-color="#0A0D14"/>
+    </linearGradient>
+    <linearGradient id="btc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB454"/>
+      <stop offset="1" stop-color="#F7931A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7931A" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#F7931A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C8D2E0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="320" rx="20" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1198" height="318" rx="19" fill="none" stroke="#1E2636" stroke-width="2"/>
+
+  <!-- faint dot grid -->
+  <g fill="#27324A" opacity="0.5">
+    <circle cx="80" cy="60" r="1.4"/><circle cx="140" cy="60" r="1.4"/><circle cx="200" cy="60" r="1.4"/>
+    <circle cx="80" cy="120" r="1.4"/><circle cx="140" cy="120" r="1.4"/><circle cx="200" cy="120" r="1.4"/>
+    <circle cx="1120" cy="260" r="1.4"/><circle cx="1060" cy="260" r="1.4"/><circle cx="1000" cy="260" r="1.4"/>
+    <circle cx="1120" cy="200" r="1.4"/><circle cx="1060" cy="200" r="1.4"/><circle cx="1000" cy="200" r="1.4"/>
+  </g>
+
+  <!-- emblem: hexagon VM with Bitcoin core + ZK proof tick -->
+  <g transform="translate(160,160)">
+    <circle cx="0" cy="0" r="120" fill="url(#glow)"/>
+    <!-- outer hexagon (the VM / instruction machine) -->
+    <polygon points="0,-92 80,-46 80,46 0,92 -80,46 -80,-46"
+             fill="#0D1322" stroke="url(#btc)" stroke-width="3"/>
+    <!-- inner hexagon ring -->
+    <polygon points="0,-66 57,-33 57,33 0,66 -57,33 -57,-33"
+             fill="none" stroke="#33405C" stroke-width="2" opacity="0.8"/>
+    <!-- Bitcoin symbol -->
+    <text x="0" y="26" text-anchor="middle"
+          font-family="Georgia, 'Times New Roman', serif" font-size="92" font-weight="700"
+          fill="url(#btc)">&#8383;</text>
+    <!-- ZK proof badge (verified tick) -->
+    <g transform="translate(58,-58)">
+      <circle cx="0" cy="0" r="26" fill="#16A34A" stroke="#0A0D14" stroke-width="4"/>
+      <path d="M -11 1 L -3 9 L 12 -8" fill="none" stroke="#FFFFFF" stroke-width="5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text x="330" y="150" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="86" font-weight="800" letter-spacing="2" fill="url(#word)">HIMSHA</text>
+
+  <!-- accent underline -->
+  <rect x="334" y="168" width="300" height="4" rx="2" fill="url(#btc)"/>
+
+  <!-- tagline -->
+  <text x="334" y="208" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="27" font-weight="600" fill="#E2E8F0">ZK-proven Bitcoin programmability</text>
+  <text x="334" y="240" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="17" font-weight="400" fill="#7C8BA3">Hashable Instruction Machine &#183; every state transition proven by a RISC&#160;Zero receipt</text>
+
+  <!-- mini pipeline chips -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600">
+    <g transform="translate(334,266)">
+      <rect x="0" y="0" width="92" height="30" rx="15" fill="#11182A" stroke="#2A3650" stroke-width="1.5"/>
+      <text x="46" y="20" text-anchor="middle" fill="#9FB0C9">himsha-vm</text>
+    </g>
+    <g transform="translate(438,266)">
+      <rect x="0" y="0" width="104" height="30" rx="15" fill="#11182A" stroke="#2A3650" stroke-width="1.5"/>
+      <text x="52" y="20" text-anchor="middle" fill="#9FB0C9">ZK receipt</text>
+    </g>
+    <g transform="translate(554,266)">
+      <rect x="0" y="0" width="128" height="30" rx="15" fill="#11182A" stroke="#2A3650" stroke-width="1.5"/>
+      <text x="64" y="20" text-anchor="middle" fill="#9FB0C9">Bitcoin&#160;L1 settle</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://himanshu64.github.io/himsha-network/sitemap.xml
