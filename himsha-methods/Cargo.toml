@@ -1,0 +1,15 @@
+[package]
+name    = "himsha-methods"
+version = "0.1.0"
+edition = "2021"
+description = "RISC Zero guest ELFs for HIMSHA Network (built via cargo-risczero). Opt-in: enable himsha-vm's `zkvm` feature."
+
+# Detached from the main workspace so the default `cargo build --workspace`
+# never tries to compile the guest (which needs the RISC Zero toolchain).
+[workspace]
+
+[build-dependencies]
+risc0-build = { version = "0.19.1" }
+
+[package.metadata.risc0]
+methods = ["guest"]

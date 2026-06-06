@@ -1,0 +1,41 @@
+[package]
+name    = "himsha-vm"
+version = "0.1.0"
+edition = "2021"
+description = "ZK execution engine for HIMSHA Network — runs programs inside RISC Zero zkVM and produces verifiable receipts"
+
+[dependencies]
+himsha-runtime = { workspace = true }
+
+# Built-in programs — executed natively by the dispatch layer (Phase 0).
+himsha-system-program       = { path = "../himsha-programs/system" }
+himsha-token-program        = { path = "../himsha-programs/token" }
+himsha-ata-program          = { path = "../himsha-programs/ata" }
+himsha-swap-program         = { path = "../himsha-programs/swap" }
+himsha-lending-program      = { path = "../himsha-programs/lending" }
+himsha-nft-metadata-program = { path = "../himsha-programs/nft-metadata" }
+himsha-runes-program        = { path = "../himsha-programs/runes" }
+himsha-money-market-program = { path = "../himsha-programs/money-market" }
+himsha-vault-program        = { path = "../himsha-programs/vault" }
+himsha-oracle-program       = { path = "../himsha-programs/oracle" }
+
+borsh       = { workspace = true }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+thiserror   = { workspace = true }
+anyhow      = { workspace = true }
+sha2        = { workspace = true }
+hex         = { workspace = true }
+tracing     = { workspace = true }
+
+# RISC Zero for ZK proof generation and verification
+risc0-zkvm = { version = "0.19", features = ["prove"] }
+
+# Guest ELFs — only pulled in (and only built, which needs the RISC Zero
+# toolchain) when the `zkvm` feature is enabled. See docs/zkvm-proving.md.
+himsha-methods = { path = "../himsha-methods", optional = true }
+
+[features]
+# Prove *all* programs (built-ins included) through the universal guest instead
+# of running built-ins natively. Requires `cargo-risczero` + `r0vm`.
+zkvm = ["dep:himsha-methods"]

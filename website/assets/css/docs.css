@@ -1,0 +1,165 @@
+/* ================================================
+   HIMSHA Network — Docs page (rendered markdown)
+   Depends on tokens from main.css
+================================================ */
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  max-width: 1280px;
+  margin: 66px auto 0;
+  align-items: start;
+}
+
+/* ---- Sidebar (sticky TOC) ---- */
+.doc-sidebar {
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 66px;
+  height: calc(100vh - 66px);
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 28px 18px 48px;
+}
+.doc-sidebar-head {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--text-dim);
+  margin: 0 8px 16px; display: flex; align-items: center; gap: 8px;
+}
+.doc-back {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 8px 20px; color: var(--text-muted); text-decoration: none;
+  font-size: 13px; font-weight: 500; transition: var(--transition);
+}
+.doc-back:hover { color: var(--orange); }
+.doc-back svg { width: 15px; height: 15px; }
+.doc-toc-link {
+  display: block; padding: 7px 12px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; color: var(--text-muted);
+  text-decoration: none; transition: var(--transition); margin-bottom: 2px;
+  border-left: 2px solid transparent;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.doc-toc-link:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.doc-toc-link.active { color: var(--orange); background: var(--orange-dim); border-left-color: var(--orange); }
+
+/* ---- Content ---- */
+.doc-content { padding: 52px 64px 120px; max-width: 920px; min-width: 0; }
+
+.doc-prose { font-size: 15.5px; line-height: 1.72; color: var(--text); }
+.doc-prose > *:first-child { margin-top: 0; }
+
+.doc-prose h1 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.005em;
+  line-height: 1.14; margin-bottom: 14px;
+}
+.doc-prose h2 {
+  font-family: var(--font-display);
+  font-size: 24px; font-weight: 700; letter-spacing: -.005em;
+  margin: 56px 0 18px; padding-top: 22px; border-top: 1px solid var(--border);
+  scroll-margin-top: 86px;
+}
+.doc-prose h1 + h2, .doc-prose hr + h2 { border-top: none; padding-top: 0; margin-top: 36px; }
+.doc-prose h3 {
+  font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  margin: 32px 0 12px; scroll-margin-top: 86px; color: var(--text);
+}
+.doc-prose h4 { font-size: 15px; font-weight: 700; margin: 24px 0 10px; color: var(--text-muted); }
+
+.doc-prose p { margin: 0 0 18px; color: var(--text-muted); }
+.doc-prose strong { color: var(--text); font-weight: 600; }
+.doc-prose a { color: var(--orange); text-decoration: none; border-bottom: 1px solid rgba(247,147,26,.3); }
+.doc-prose a:hover { border-bottom-color: var(--orange); }
+
+.doc-prose ul, .doc-prose ol { margin: 0 0 18px; padding-left: 22px; color: var(--text-muted); }
+.doc-prose li { margin-bottom: 7px; }
+.doc-prose li::marker { color: var(--text-dim); }
+
+/* Inline code */
+.doc-prose :not(pre) > code {
+  font-family: var(--font-mono); font-size: .86em;
+  background: var(--bg-3); color: var(--orange-2);
+  padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border);
+}
+
+/* Code blocks */
+.doc-prose pre {
+  margin: 0 0 22px; background: var(--bg-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.doc-prose pre code {
+  display: block; padding: 18px 20px; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+  color: #cdd3dd; background: none; border: none; white-space: pre; tab-size: 2;
+  -webkit-font-smoothing: auto;
+}
+
+/* Tables */
+.doc-prose table {
+  width: 100%; border-collapse: collapse; margin: 0 0 24px;
+  font-size: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; display: table;
+}
+.doc-prose thead { background: var(--bg-3); }
+.doc-prose th {
+  text-align: left; padding: 12px 16px; font-weight: 700; font-size: 12.5px;
+  color: var(--text); border-bottom: 1px solid var(--border-2);
+}
+.doc-prose td {
+  padding: 11px 16px; border-bottom: 1px solid var(--border);
+  color: var(--text-muted); vertical-align: top;
+}
+.doc-prose tr:last-child td { border-bottom: none; }
+.doc-prose tbody tr { transition: var(--transition); }
+.doc-prose tbody tr:hover { background: rgba(255,255,255,.018); }
+.doc-prose td code { white-space: nowrap; }
+
+/* Blockquote → callout (disclaimers) */
+.doc-prose blockquote {
+  margin: 0 0 24px; padding: 14px 18px;
+  background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2);
+  border-left: 3px solid var(--red); border-radius: var(--radius-sm);
+  color: #f0a3a3; font-size: 14px;
+}
+.doc-prose blockquote p { color: inherit; margin: 0; }
+.doc-prose blockquote strong { color: #ff7b7b; }
+.doc-prose blockquote code { background: rgba(239,68,68,.12); color: #ffb4b4; border-color: rgba(239,68,68,.2); }
+
+/* Horizontal rules — used as section separators, hide (h2 border handles it) */
+.doc-prose hr { border: none; height: 0; margin: 0; }
+
+/* Header chip above title */
+.doc-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--orange);
+  margin-bottom: 14px;
+}
+.doc-eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--orange); opacity: .6; }
+
+/* Mobile sidebar toggle */
+.doc-toc-toggle { display: none; }
+
+@media (max-width: 920px) {
+  .doc-layout { grid-template-columns: 1fr; }
+  .doc-sidebar {
+    position: static; height: auto; border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 0; overflow: hidden; padding: 0 18px;
+    transition: max-height .3s ease, padding .3s ease;
+  }
+  .doc-sidebar.open { max-height: 70vh; overflow-y: auto; padding: 20px 18px; }
+  .doc-content { padding: 28px 22px 80px; max-width: 100%; }
+  .doc-toc-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; gap: 10px;
+    position: sticky; top: 66px; z-index: 50;
+    background: var(--bg-2); border: none; border-bottom: 1px solid var(--border);
+    color: var(--text); font-size: 14px; font-weight: 600; font-family: var(--font-sans);
+    padding: 14px 22px; cursor: pointer;
+  }
+  .doc-toc-toggle svg { width: 18px; height: 18px; }
+}

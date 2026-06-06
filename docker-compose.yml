@@ -1,0 +1,118 @@
+# =========================================================
+# HIMSHA local regtest stack
+#
+#   bitcoin   — Bitcoin Core on regtest (the only backend the node talks to)
+#   himsha    — the HIMSHA node, wired to bitcoin's RPC
+#   ord       — Ordinals indexer, OPTIONAL (profile: ordinals). The node does
+#               NOT consume ord; it's here only for manual inscription browsing.
+#
+# Quick start:
+#   cp .env.example .env
+#   docker compose up -d --build
+#   bash docker/scripts/init-regtest.sh   # create + fund a regtest wallet
+#   bash docker/scripts/smoke-test.sh     # exercise the node RPC
+# =========================================================
+
+name: himsha
+
+networks:
+  himsha-net:
+    driver: bridge
+
+volumes:
+  bitcoin-data:
+  himsha-data:
+  ord-data:
+
+services:
+
+  bitcoin:
+    image: bitcoin/bitcoin:27.0
+    container_name: himsha-bitcoin
+    restart: unless-stopped
+    networks: [himsha-net]
+    ports:
+      - "${BITCOIN_RPC_PORT:-18443}:18443"   # RPC
+    volumes:
+      - bitcoin-data:/home/bitcoin/.bitcoin
+    # Config passed as flags rather than a mounted file: the official image's
+    # entrypoint chowns everything in the datadir on start, which fails on a
+    # read-only bind mount and crash-loops the container.
+    command:
+      - -regtest
+      - -server
+      - -txindex
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcport=18443
+      - -fallbackfee=0.0002
+      - -printtoconsole
+      - -rpcuser=${BITCOIN_RPC_USER:-himuser}
+      - -rpcpassword=${BITCOIN_RPC_PASS:-devpass_change_me}
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-regtest",
+             "-rpcuser=${BITCOIN_RPC_USER:-himuser}",
+             "-rpcpassword=${BITCOIN_RPC_PASS:-devpass_change_me}",
+             "getblockchaininfo"]
+      interval: 10s
+      timeout: 8s
+      retries: 15
+      start_period: 15s
+
+  himsha:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: himsha-node:local
+    container_name: himsha-node
+    restart: unless-stopped
+    networks: [himsha-net]
+    ports:
+      - "${HIMSHA_NODE_PORT:-9100}:9100"
+    volumes:
+      - himsha-data:/data
+    environment:
+      HIMSHA_BIND: "0.0.0.0:9100"
+      HIMSHA_DB: "/data/him.redb"
+      HIMSHA_FAUCET: "${HIMSHA_FAUCET:-1}"
+      BITCOIN_NETWORK: "${BITCOIN_NETWORK:-regtest}"
+      BITCOIN_RPC_URL: "http://bitcoin:18443"
+      BITCOIN_RPC_USER: "${BITCOIN_RPC_USER:-himuser}"
+      BITCOIN_RPC_PASS: "${BITCOIN_RPC_PASS:-devpass_change_me}"
+      BITCOIN_SYNC_INTERVAL_SECS: "${BITCOIN_SYNC_INTERVAL_SECS:-5}"
+      RUST_LOG: "${RUST_LOG:-himsha_node=info,warn}"
+    depends_on:
+      bitcoin:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "-X", "POST", "http://localhost:9100",
+             "-H", "Content-Type: application/json",
+             "-d", "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"himsha_isNodeReady\",\"params\":[]}"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 10s
+
+  # Optional. Start with:  docker compose --profile ordinals up -d
+  ord:
+    image: ordinals/ord:latest
+    container_name: himsha-ord
+    restart: unless-stopped
+    profiles: ["ordinals"]
+    networks: [himsha-net]
+    ports:
+      - "${ORD_PORT:-8080}:8080"
+    volumes:
+      - ord-data:/ord-data
+    command:
+      - --regtest
+      - --bitcoin-rpc-url=http://bitcoin:18443
+      - --bitcoin-rpc-username=${BITCOIN_RPC_USER:-himuser}
+      - --bitcoin-rpc-password=${BITCOIN_RPC_PASS:-devpass_change_me}
+      - --data-dir=/ord-data
+      - server
+      - --http-port=8080
+    depends_on:
+      bitcoin:
+        condition: service_healthy

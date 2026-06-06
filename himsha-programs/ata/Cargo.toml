@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-ata-program"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA Associated Token Account program — deterministic per-user token accounts"
+
+[dependencies]
+himsha-runtime      = { workspace = true }
+himsha-token-program = { path = "../token" }
+borsh            = { workspace = true }
+serde            = { workspace = true }

@@ -1,0 +1,13 @@
+[package]
+name    = "himsha-threshold"
+version = "0.1.0"
+edition = "2021"
+description = "FROST threshold Schnorr signing committee for the HIMSHA Bitcoin settlement key (M-of-N, no single signer)"
+
+[dependencies]
+# Audited FROST implementation over secp256k1 (Schnorr / BIP-340 family).
+frost-secp256k1 = "2"
+# Taproot-compatible variant (BIP-341 tweak / even-Y) for Bitcoin key-spend.
+frost-secp256k1-tr = "2"
+rand            = { workspace = true }
+thiserror       = { workspace = true }

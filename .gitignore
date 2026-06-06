@@ -1,0 +1,17 @@
+# Rust
+target/
+
+# Node
+node_modules/
+dist/
+
+# Local env & secrets — never commit
+.env
+secret.properties
+
+# macOS
+.DS_Store
+
+# Local node data
+*.redb
+data/

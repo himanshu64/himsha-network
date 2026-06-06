@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-lending-program"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA ordinals lending — collateralize Bitcoin inscriptions to borrow BTC"
+
+[dependencies]
+himsha-runtime = { workspace = true }
+borsh       = { workspace = true }
+serde       = { workspace = true }
+hex         = { workspace = true }

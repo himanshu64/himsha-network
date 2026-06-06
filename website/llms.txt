@@ -1,0 +1,66 @@
+# HIMSHA Network
+
+> HIMSHA (Hashable Instruction Machine) is an experimental, fully open-source Bitcoin
+> programmability layer. Every state transition is proven correct by a RISC Zero
+> zero-knowledge (ZK) receipt — not by validator majority vote. It needs no bridges and
+> no trust assumptions. This is an educational, proof-of-concept project and is NOT
+> production-grade or audited.
+
+## What it is
+
+- A layer for running programs whose correctness is guaranteed by ZK proofs, settled on Bitcoin L1.
+- Programs are written in Rust, compiled to RISC-V, and executed inside the RISC Zero zkVM.
+- Each execution emits a cryptographic receipt that anyone can verify independently.
+- Updated account state is committed to a Bitcoin UTXO, so state survives even if all HIMSHA validators disappear.
+
+## How it works (4 layers)
+
+1. Client builds a signed `RuntimeTransaction` (standard Bitcoin Schnorr keys) targeting one or more programs.
+2. The HIMSHA node executes the transaction in the RISC Zero zkVM and produces a verifiable ZK receipt.
+3. Updated account state is anchored to a Bitcoin UTXO on L1.
+4. If a program produces a Bitcoin transaction (e.g. moving an inscription), the node signs and broadcasts it — no bridge, no wrapped assets.
+
+## Why it differs from other Bitcoin L2s
+
+- Correctness comes from a ZK proof (math), not validator consensus or a fraud-proof window.
+- No bridges are required; assets stay on Bitcoin L1.
+- ZK makes privacy possible.
+- Validator honesty is not required for correctness.
+
+## Built-in programs
+
+- System — account creation, lamport transfer, ownership, allocation.
+- Token — fungible tokens (mint, transfer, burn, freeze, delegate).
+- ATA — deterministic per-user token accounts.
+- Swap — constant-product AMM (x·y=k).
+- Lending — borrow BTC against Bitcoin Ordinal inscriptions as collateral (pure time-lock, no oracles).
+- NFT Metadata — on-chain name, symbol, URI, royalties, creator verification.
+- Runes — Bitcoin Runes fungible tokens (etch, open-mint, transfer, burn).
+- Money Market — over-collateralized borrowing with interest accrual and liquidation.
+
+## What you can build
+
+- Ordinals-collateralized lending markets.
+- On-chain DEX / AMM for tokens and Runes.
+- Token and Runes launchpads.
+- NFT marketplaces with enforced on-chain royalties.
+- Bitcoin money markets (supply, borrow, repay, liquidate).
+
+## SDKs
+
+- TypeScript (`@himsha-network/sdk`), Python (`himsha-sdk`), and Dart — one shared API surface.
+
+## Key facts
+
+- License/openness: fully open source.
+- Proving system: RISC Zero zkVM (RISC-V).
+- Settlement layer: Bitcoin L1 (regtest / testnet / mainnet).
+- Status: educational proof of concept; not audited; do not use with real mainnet funds.
+
+## Links
+
+- Source code: https://github.com/your-org/himsha-network
+- Tutorials: https://your-org.github.io/himsha-network/tutorials.html
+- Docker setup: https://your-org.github.io/himsha-network/bitcoin-indexer-docker.html
+- Kubernetes & Terraform: https://your-org.github.io/himsha-network/bitcoin-indexer-k8s.html
+- RISC Zero: https://risc0.com

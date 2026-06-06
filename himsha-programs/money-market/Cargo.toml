@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-money-market-program"
+version = "0.1.0"
+edition = "2021"
+description = "Over-collateralized money market for HIMSHA Network — supply collateral, borrow against it, repay, with LTV / health-factor enforcement"
+
+[dependencies]
+himsha-runtime        = { workspace = true }
+himsha-token-program  = { path = "../token" }
+himsha-oracle-program = { path = "../oracle" }
+borsh             = { workspace = true }

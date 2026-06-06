@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- HIMSHA Network sitemap. Replace the host with your production domain if not on GitHub Pages. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://your-org.github.io/himsha-network/index.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://your-org.github.io/himsha-network/index.html"/>
+    <xhtml:link rel="alternate" hreflang="en"      href="https://your-org.github.io/himsha-network/index.html"/>
+    <xhtml:link rel="alternate" hreflang="es"      href="https://your-org.github.io/himsha-network/index.html?lang=es"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://your-org.github.io/himsha-network/index.html?lang=zh-Hans"/>
+    <xhtml:link rel="alternate" hreflang="ja"      href="https://your-org.github.io/himsha-network/index.html?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="fr"      href="https://your-org.github.io/himsha-network/index.html?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="de"      href="https://your-org.github.io/himsha-network/index.html?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="hi"      href="https://your-org.github.io/himsha-network/index.html?lang=hi"/>
+    <xhtml:link rel="alternate" hreflang="te"      href="https://your-org.github.io/himsha-network/index.html?lang=te"/>
+    <xhtml:link rel="alternate" hreflang="ta"      href="https://your-org.github.io/himsha-network/index.html?lang=ta"/>
+    <xhtml:link rel="alternate" hreflang="kn"      href="https://your-org.github.io/himsha-network/index.html?lang=kn"/>
+  </url>
+
+  <url>
+    <loc>https://your-org.github.io/himsha-network/tutorials.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://your-org.github.io/himsha-network/bitcoin-indexer-docker.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://your-org.github.io/himsha-network/bitcoin-indexer-k8s.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>

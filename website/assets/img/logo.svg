@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 36" width="152" height="36" role="img" aria-label="HIM Network">
+  <defs>
+    <linearGradient id="himGradL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7931A"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </linearGradient>
+    <linearGradient id="himWord" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F7931A"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </linearGradient>
+  </defs>
+
+  <!-- mark -->
+  <g transform="translate(2,2)">
+    <rect width="32" height="32" rx="7" fill="url(#himGradL)"/>
+    <rect x="8.4"  y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+    <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+    <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+    <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+  </g>
+
+  <!-- wordmark: drawn as paths so it renders without a web font.
+       Monospace-style HIM, 18px cap height, baseline ~25. -->
+  <g fill="#e8e8ed">
+    <!-- H -->
+    <rect x="46"   y="9"  width="3"  height="18" rx="1"/>
+    <rect x="55.3" y="9"  width="3"  height="18" rx="1"/>
+    <rect x="46"   y="16" width="12.3" height="3" rx="1"/>
+    <!-- I -->
+    <rect x="66"   y="9"  width="3"  height="18" rx="1"/>
+    <rect x="62.5" y="9"  width="10" height="3"  rx="1"/>
+    <rect x="62.5" y="24" width="10" height="3"  rx="1"/>
+    <!-- M -->
+    <rect x="80"    y="9" width="3" height="18" rx="1"/>
+    <rect x="93.6"  y="9" width="3" height="18" rx="1"/>
+    <path d="M81.2 9.4 L88.3 20 L86 21.5 L80.7 13.5 Z"/>
+    <path d="M95.4 9.4 L88.3 20 L90.6 21.5 L95.9 13.5 Z"/>
+  </g>
+</svg>

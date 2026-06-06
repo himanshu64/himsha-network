@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorials — HIMSHA Network</title>
+  <meta name="description" content="Step-by-step HIMSHA Network tutorials: tokens, swaps, Ordinals-collateralized loans, NFT metadata, and the Rust/JS/Python test suites." />
+  <link rel="canonical" href="https://your-org.github.io/himsha-network/tutorials.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="HIMSHA Network" />
+  <meta property="og:title" content="Tutorials — HIMSHA Network" />
+  <meta property="og:description" content="Step-by-step guides for tokens, swaps, loans, NFT metadata, and testing on HIMSHA Network." />
+  <meta property="og:url" content="https://your-org.github.io/himsha-network/tutorials.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png" />
+  <link rel="shortcut icon" href="assets/img/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
+  <meta name="theme-color" content="#F7931A" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/tutorials.css" />
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="navHimsha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7931A"/><stop offset="1" stop-color="#FFB347"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#navHimsha)"/>
+        <rect x="8.4" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+        <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+      </svg>
+      <span>HIMSHA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#features">Features</a></li>
+      <li><a href="tutorials.html" style="color:#F7931A">Tutorials</a></li>
+      <li><a href="index.html#programs">Programs</a></li>
+      <li><a href="index.html#sdks">SDKs</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/your-org/himsha-network" target="_blank">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main class="tut-layout">
+  <!-- ---- Sidebar ---- -->
+  <aside class="tut-sidebar">
+    <div class="tut-sidebar-inner">
+      <div class="tut-section-label">Getting Started</div>
+      <a class="tut-nav-link active" href="#quick-setup">Quick Setup</a>
+      <a class="tut-nav-link" href="#first-account">Create Your First Account</a>
+
+      <div class="tut-section-label">Token Program</div>
+      <a class="tut-nav-link" href="#create-token">Create a Token</a>
+      <a class="tut-nav-link" href="#mint-transfer">Mint & Transfer</a>
+      <a class="tut-nav-link" href="#burn-close">Burn & Close</a>
+
+      <div class="tut-section-label">Swap Program</div>
+      <a class="tut-nav-link" href="#create-pool">Create a Liquidity Pool</a>
+      <a class="tut-nav-link" href="#add-liquidity">Add Liquidity</a>
+      <a class="tut-nav-link" href="#swap-tokens">Swap Tokens</a>
+      <a class="tut-nav-link" href="#remove-liquidity">Remove Liquidity</a>
+
+      <div class="tut-section-label">Lending Program</div>
+      <a class="tut-nav-link" href="#init-collection">Init Collection</a>
+      <a class="tut-nav-link" href="#place-bid">Place a Bid (Lender)</a>
+      <a class="tut-nav-link" href="#borrow">Accept Bid (Borrower)</a>
+      <a class="tut-nav-link" href="#repay">Repay a Loan</a>
+      <a class="tut-nav-link" href="#claim-default">Claim Default</a>
+
+      <div class="tut-section-label">NFT Metadata</div>
+      <a class="tut-nav-link" href="#nft-create">Create Metadata</a>
+      <a class="tut-nav-link" href="#nft-update">Update & Freeze</a>
+
+      <div class="tut-section-label">Testing</div>
+      <a class="tut-nav-link" href="#test-rust">Run Rust Tests</a>
+      <a class="tut-nav-link" href="#test-js">Run JS Tests</a>
+      <a class="tut-nav-link" href="#test-python">Run Python Tests</a>
+    </div>
+  </aside>
+
+  <!-- ---- Content ---- -->
+  <div class="tut-content">
+
+    <div class="tut-hero">
+      <div class="section-label">HIMSHA Network</div>
+      <h1>Tutorials</h1>
+      <p>Step-by-step guides for every module: tokens, swaps, loans, NFT metadata, and testing.</p>
+      <div class="disclaimer-banner" style="margin-top:20px;border-radius:8px;">
+        ⚠️ <strong>Educational only.</strong> Do not use with real Bitcoin mainnet funds.
+      </div>
+    </div>
+
+    <!-- ================================================
+         QUICK SETUP
+    ================================================ -->
+    <section class="tut-section" id="quick-setup">
+      <h2>Quick Setup</h2>
+      <p>Start the full stack locally with Docker Compose before running any tutorial.</p>
+
+      <div class="step-box">
+        <div class="step-box-num">1</div>
+        <div>
+          <strong>Clone the repo and build</strong>
+          <pre><code class="code-block">git clone https://github.com/your-org/himsha-network.git
+cd himsha-network
+cargo build --workspace</code></pre>
+        </div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-box-num">2</div>
+        <div>
+          <strong>Start Bitcoin + Electrs + Ord + HIMSHA Node</strong>
+          <pre><code class="code-block">cd bitcoin-infra
+cp .env.example .env
+# Edit .env: set BITCOIN_RPC_USER and BITCOIN_RPC_PASS
+mkdir -p data/{bitcoin,electrs,ord,him}
+docker compose up -d
+
+# Wait for all services to be healthy (~2 minutes on regtest)
+docker compose ps</code></pre>
+        </div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-box-num">3</div>
+        <div>
+          <strong>Fund the regtest wallet (regtest only)</strong>
+          <pre><code class="code-block">bash scripts/init-regtest.sh
+# Output: Wallet balance: 50.00000000 BTC</code></pre>
+        </div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-box-num">4</div>
+        <div>
+          <strong>Verify the HIMSHA node is ready</strong>
+          <pre><code class="code-block">curl -s -X POST http://localhost:9100 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"himsha_isNodeReady","params":[]}'
+
+# Expected: {"result":true}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================
+         FIRST ACCOUNT
+    ================================================ -->
+    <section class="tut-section" id="first-account">
+      <h2>Create Your First Account</h2>
+      <p>All state on HIMSHA Network lives in <em>accounts</em>. The System Program creates them.</p>
+
+      <div class="tabs">
+        <button class="tab active" data-group="account" data-tab="ts-account">TypeScript</button>
+        <button class="tab" data-group="account" data-tab="py-account">Python</button>
+        <button class="tab" data-group="account" data-tab="dart-account">Dart</button>
+      </div>
+
+      <div class="tab-panel active" id="ts-account">
+        <pre><code class="code-block"><span class="k">import</span> { HimshaConnection, HimshaPublicKey, HimshaTransaction } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+<span class="k">import</span> { SystemProgram } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> conn   = <span class="k">new</span> HimshaConnection(<span class="s">"http://localhost:9100"</span>);
+<span class="k">const</span> payer  = HimshaPublicKey.fromSeed(<span class="s">"my-wallet"</span>);    <span class="c">// derive from keypair in production</span>
+<span class="k">const</span> newAcc = HimshaPublicKey.fromSeed(<span class="s">"my-data-account"</span>);
+<span class="k">const</span> owner  = HimshaPublicKey.fromSeed(<span class="s">"my-program"</span>);
+
+<span class="k">const</span> tx = HimshaTransaction.create([payer], [
+  SystemProgram.createAccount(
+    payer,
+    newAcc,
+    1_000_000n,   <span class="c">// lamports (rent)</span>
+    256n,         <span class="c">// data space in bytes</span>
+    owner,        <span class="c">// which program owns this account</span>
+  )
+]);
+
+<span class="k">const</span> txId = <span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Account created, txId:"</span>, txId);
+
+<span class="c">// Verify</span>
+<span class="k">const</span> info = <span class="k">await</span> conn.getAccountInfo(newAcc);
+console.log(<span class="s">"Account:"</span>, info);</code></pre>
+      </div>
+
+      <div class="tab-panel" id="py-account">
+        <pre><code class="code-block"><span class="k">from</span> himsha_sdk <span class="k">import</span> HimshaConnection, HimshaPublicKey, HimshaTransaction
+<span class="k">from</span> himsha_sdk.programs <span class="k">import</span> system
+
+<span class="k">async with</span> HimshaConnection(<span class="s">"http://localhost:9100"</span>) <span class="k">as</span> conn:
+    payer   = HimshaPublicKey.from_seed(<span class="s">"my-wallet"</span>)
+    new_acc = HimshaPublicKey.from_seed(<span class="s">"my-data-account"</span>)
+    owner   = HimshaPublicKey.from_seed(<span class="s">"my-program"</span>)
+
+    tx = HimshaTransaction.create(
+        signers=[payer],
+        instructions=[
+            system.create_account(payer, new_acc, 1_000_000, 256, owner)
+        ]
+    )
+
+    tx_id = <span class="k">await</span> conn.send_transaction(tx)
+    print(<span class="s">f"Account created: {tx_id}"</span>)
+
+    info = <span class="k">await</span> conn.get_account_info(new_acc)
+    print(<span class="s">f"Lamports: {info.lamports}"</span>)</code></pre>
+      </div>
+
+      <div class="tab-panel" id="dart-account">
+        <pre><code class="code-block"><span class="k">import</span> <span class="s">'package:himsha_sdk/himsha_sdk.dart'</span>;
+
+<span class="k">final</span> conn   = HimshaConnection(<span class="s">'http://localhost:9100'</span>);
+<span class="k">final</span> payer  = HimshaPublicKey.fromSeed(<span class="s">'my-wallet'</span>);
+<span class="k">final</span> newAcc = HimshaPublicKey.fromSeed(<span class="s">'my-data-account'</span>);
+<span class="k">final</span> owner  = HimshaPublicKey.fromSeed(<span class="s">'my-program'</span>);
+
+<span class="k">final</span> tx = HimshaTransaction.create([payer], [
+  SystemProgram.createAccount(payer, newAcc, BigInt.from(1000000), BigInt.from(256), owner),
+]);
+
+<span class="k">final</span> txId = <span class="k">await</span> conn.sendTransaction(tx);
+print(<span class="s">'Account created: </span><span class="k">$txId</span><span class="s">'</span>);
+
+conn.close();</code></pre>
+      </div>
+    </section>
+
+    <!-- ================================================
+         TOKEN: CREATE
+    ================================================ -->
+    <section class="tut-section" id="create-token">
+      <h2>Create a Token</h2>
+      <p>
+        A token has two accounts: a <strong>Mint</strong> (controls supply and decimals)
+        and a <strong>Token Account</strong> (holds balances for a specific wallet).
+      </p>
+
+      <div class="info-box">
+        <strong>Flow:</strong>
+        <ol>
+          <li>Create the Mint account (System Program)</li>
+          <li>Initialize the Mint (Token Program)</li>
+          <li>Create a Token Account for the holder</li>
+          <li>Initialize the Token Account</li>
+        </ol>
+      </div>
+
+      <pre><code class="code-block"><span class="c">// TypeScript</span>
+<span class="k">import</span> { SystemProgram, TokenProgram, PROGRAM_IDS } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> mint         = HimshaPublicKey.fromSeed(<span class="s">"mytoken-mint"</span>);
+<span class="k">const</span> mintAuth     = HimshaPublicKey.fromSeed(<span class="s">"mytoken-authority"</span>);
+<span class="k">const</span> tokenAccount = HimshaPublicKey.fromSeed(<span class="s">"alice-mytoken-account"</span>);
+<span class="k">const</span> alice        = HimshaPublicKey.fromSeed(<span class="s">"alice"</span>);
+
+<span class="k">const</span> tx = HimshaTransaction.create([payer, mintAuth], [
+  <span class="c">// Step 1: allocate space for the mint (Mint state = ~82 bytes)</span>
+  SystemProgram.createAccount(payer, mint, 2_000_000n, 82n, PROGRAM_IDS.token),
+
+  <span class="c">// Step 2: initialize mint (6 decimals, mintAuth can mint, no freeze)</span>
+  TokenProgram.initializeMint(mint, mintAuth, 6),
+
+  <span class="c">// Step 3: create token account for Alice</span>
+  SystemProgram.createAccount(payer, tokenAccount, 2_000_000n, 165n, PROGRAM_IDS.token),
+
+  <span class="c">// Step 4: initialize token account</span>
+  TokenProgram.initializeAccount(tokenAccount, mint, alice),
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Token created!"</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         TOKEN: MINT & TRANSFER
+    ================================================ -->
+    <section class="tut-section" id="mint-transfer">
+      <h2>Mint & Transfer Tokens</h2>
+
+      <pre><code class="code-block"><span class="c">// Mint 1,000 tokens (6 decimals = 1_000_000_000 raw units)</span>
+<span class="k">const</span> mintTx = HimshaTransaction.create([mintAuth], [
+  TokenProgram.mintTo(mint, tokenAccount, mintAuth, 1_000_000_000n)
+]);
+<span class="k">await</span> conn.sendTransaction(mintTx);
+
+<span class="c">// Transfer 100 tokens from Alice to Bob</span>
+<span class="k">const</span> bobAccount = HimshaPublicKey.fromSeed(<span class="s">"bob-mytoken-account"</span>);
+<span class="k">const</span> bob        = HimshaPublicKey.fromSeed(<span class="s">"bob"</span>);
+
+<span class="k">const</span> transferTx = HimshaTransaction.create([alice], [
+  TokenProgram.transfer(tokenAccount, bobAccount, alice, 100_000_000n)
+]);
+<span class="k">await</span> conn.sendTransaction(transferTx);
+
+console.log(<span class="s">"Transferred 100 tokens from Alice to Bob"</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         TOKEN: BURN & CLOSE
+    ================================================ -->
+    <section class="tut-section" id="burn-close">
+      <h2>Burn Tokens & Close Account</h2>
+
+      <pre><code class="code-block"><span class="c">// Burn 50 tokens from Alice's account</span>
+<span class="k">const</span> burnTx = HimshaTransaction.create([alice], [
+  TokenProgram.burn(tokenAccount, mint, alice, 50_000_000n)
+]);
+<span class="k">await</span> conn.sendTransaction(burnTx);
+
+<span class="c">// Close Alice's empty token account, reclaim lamports</span>
+<span class="c">// Account must have 0 token balance before closing</span>
+<span class="k">const</span> closeTx = HimshaTransaction.create([alice], [
+  TokenProgram.closeAccount(tokenAccount, payer, alice)  <span class="c">// lamports → payer</span>
+]);
+<span class="k">await</span> conn.sendTransaction(closeTx);
+console.log(<span class="s">"Account closed, lamports reclaimed"</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         SWAP: CREATE POOL
+    ================================================ -->
+    <section class="tut-section" id="create-pool">
+      <h2>Create a Liquidity Pool</h2>
+      <p>
+        The Swap Program uses the constant-product formula <strong>x · y = k</strong>.
+        A pool consists of two token reserves and an LP mint for liquidity shares.
+      </p>
+
+      <div class="info-box">
+        <strong>Accounts needed:</strong>
+        pool state account, tokenA mint, tokenB mint,
+        reserveA token account, reserveB token account, LP mint.
+      </div>
+
+      <pre><code class="code-block"><span class="k">import</span> { SwapProgram, PROGRAM_IDS } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> pool     = HimshaPublicKey.fromSeed(<span class="s">"btc-usdc-pool"</span>);
+<span class="k">const</span> mintA    = HimshaPublicKey.fromSeed(<span class="s">"wBTC-mint"</span>);   <span class="c">// token A</span>
+<span class="k">const</span> mintB    = HimshaPublicKey.fromSeed(<span class="s">"USDC-mint"</span>);   <span class="c">// token B</span>
+<span class="k">const</span> reserveA = HimshaPublicKey.fromSeed(<span class="s">"pool-reserveA"</span>);
+<span class="k">const</span> reserveB = HimshaPublicKey.fromSeed(<span class="s">"pool-reserveB"</span>);
+<span class="k">const</span> lpMint   = HimshaPublicKey.fromSeed(<span class="s">"pool-lp-mint"</span>);
+
+<span class="k">const</span> tx = HimshaTransaction.create([payer], [
+  <span class="c">// Create pool state account</span>
+  SystemProgram.createAccount(payer, pool, 2_000_000n, 256n, PROGRAM_IDS.swap),
+
+  <span class="c">// Initialize pool: 0.3% fee (3/1000)</span>
+  SwapProgram.initialize(
+    pool, mintA, mintB, reserveA, reserveB, lpMint, payer,
+    3n,     <span class="c">// feeNumerator</span>
+    1000n,  <span class="c">// feeDenominator → 0.3%</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Liquidity pool created with 0.3% fee"</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         SWAP: ADD LIQUIDITY
+    ================================================ -->
+    <section class="tut-section" id="add-liquidity">
+      <h2>Add Liquidity</h2>
+      <p>
+        Deposit both tokens to receive LP tokens. On first deposit, any ratio is accepted.
+        Subsequent deposits must match the existing ratio (or excess is returned).
+      </p>
+
+      <pre><code class="code-block"><span class="k">const</span> userA  = HimshaPublicKey.fromSeed(<span class="s">"alice-tokenA"</span>);
+<span class="k">const</span> userB  = HimshaPublicKey.fromSeed(<span class="s">"alice-tokenB"</span>);
+<span class="k">const</span> userLp = HimshaPublicKey.fromSeed(<span class="s">"alice-lp"</span>);
+
+<span class="k">const</span> depositTx = HimshaTransaction.create([alice], [
+  SwapProgram.deposit(
+    pool, userA, userB, reserveA, reserveB, userLp, alice,
+    1_000_000n,    <span class="c">// maxA: up to 1 BTC worth of tokenA</span>
+    60_000_000n,   <span class="c">// maxB: up to 60,000 USDC</span>
+    1n,            <span class="c">// minLP: accept any LP tokens</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(depositTx);
+console.log(<span class="s">"Liquidity added. You received LP tokens."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         SWAP: SWAP TOKENS
+    ================================================ -->
+    <section class="tut-section" id="swap-tokens">
+      <h2>Swap Tokens</h2>
+      <p>
+        Exchange tokenA for tokenB (or vice versa). Set <code>minAmountOut</code>
+        to protect against slippage.
+      </p>
+
+      <pre><code class="code-block"><span class="c">// Swap 0.01 BTC worth of tokenA for at least 590 USDC (1% slippage tolerance)</span>
+<span class="k">const</span> swapTx = HimshaTransaction.create([alice], [
+  SwapProgram.swap(
+    pool,
+    userA,     <span class="c">// source (Alice's tokenA account)</span>
+    userB,     <span class="c">// destination (Alice's tokenB account)</span>
+    reserveA,  <span class="c">// pool reserve for tokenA (input side)</span>
+    reserveB,  <span class="c">// pool reserve for tokenB (output side)</span>
+    alice,     <span class="c">// signer</span>
+    10_000n,   <span class="c">// amountIn: 0.01 BTC</span>
+    590_000n,  <span class="c">// minAmountOut: reject if &lt;590 USDC</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(swapTx);
+console.log(<span class="s">"Swapped tokenA → tokenB"</span>);</code></pre>
+
+      <div class="info-box">
+        <strong>Slippage formula:</strong> The AMM outputs
+        <code>amountOut = reserveOut * amountIn / (reserveIn + amountIn)</code>.
+        Set <code>minAmountOut</code> to at least 99% of expected output to limit slippage.
+      </div>
+    </section>
+
+    <!-- ================================================
+         SWAP: REMOVE LIQUIDITY
+    ================================================ -->
+    <section class="tut-section" id="remove-liquidity">
+      <h2>Remove Liquidity</h2>
+
+      <pre><code class="code-block"><span class="c">// Burn 500 LP tokens to receive proportional tokenA + tokenB</span>
+<span class="k">const</span> withdrawTx = HimshaTransaction.create([alice], [
+  SwapProgram.withdraw(
+    pool, userA, userB, reserveA, reserveB, userLp, alice,
+    500n,     <span class="c">// lpAmount: burn 500 LP tokens</span>
+    4_500n,   <span class="c">// minA: expect at least this much tokenA</span>
+    270_000n, <span class="c">// minB: expect at least this much tokenB</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(withdrawTx);
+console.log(<span class="s">"Liquidity removed. LP tokens burned."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         LENDING: INIT COLLECTION
+    ================================================ -->
+    <section class="tut-section" id="init-collection">
+      <h2>Initialize a Lending Collection</h2>
+      <p>
+        A <strong>Collection</strong> is a lending market for one NFT collection (e.g. "FrogNFTs").
+        Lenders post bids; borrowers pledge inscriptions to receive BTC.
+      </p>
+
+      <pre><code class="code-block"><span class="k">import</span> { LendingProgram } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> collection = HimshaPublicKey.fromSeed(<span class="s">"frog-nfts-lending-market"</span>);
+
+<span class="k">const</span> tx = HimshaTransaction.create([payer], [
+  SystemProgram.createAccount(payer, collection, 2_000_000n, 4096n, PROGRAM_IDS.lending),
+  LendingProgram.initCollection(collection, payer, <span class="s">"FrogNFTs"</span>)
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"FrogNFTs lending market created!"</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         LENDING: PLACE BID
+    ================================================ -->
+    <section class="tut-section" id="place-bid">
+      <h2>Place a Bid (Lender)</h2>
+      <p>
+        A lender commits a Bitcoin UTXO as loan funds and specifies the loan value,
+        duration, and repayment address. Multiple lenders compete; borrowers pick the best offer.
+      </p>
+
+      <pre><code class="code-block"><span class="c">// Alice (lender) offers 0.001 BTC for 30 days</span>
+<span class="k">const</span> bidTxid = new Uint8Array(32).fill(0xaa); <span class="c">// real txid bytes in production</span>
+
+<span class="k">const</span> tx = HimshaTransaction.create([alice], [
+  LendingProgram.placeBid(
+    collection,
+    alice,                          <span class="c">// lender signs</span>
+    bidTxid,                        <span class="c">// UTXO containing the loan funds</span>
+    0,                              <span class="c">// vout</span>
+    100_000n,                       <span class="c">// loanValue: 100,000 sats (0.001 BTC)</span>
+    BigInt(30 * 24 * 3600),         <span class="c">// loanPeriod: 30 days in seconds</span>
+    <span class="s">"tb1q_alice_ordinals_addr"</span>,     <span class="c">// where NFT goes on default</span>
+    <span class="s">"tb1q_alice_payments_addr"</span>,     <span class="c">// where repayment goes</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Bid placed! Waiting for a borrower..."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         LENDING: ACCEPT BID
+    ================================================ -->
+    <section class="tut-section" id="borrow">
+      <h2>Accept a Bid (Borrower)</h2>
+      <p>
+        The borrower pledges a Bitcoin inscription as collateral.
+        The node automatically selects the <strong>highest bid</strong>,
+        transfers loan funds to the borrower, and locks the inscription.
+      </p>
+
+      <pre><code class="code-block"><span class="c">// Bob (borrower) pledges his Frog inscription and receives 0.001 BTC</span>
+<span class="k">const</span> inscriptionTxid = new Uint8Array(32).fill(0xbb); <span class="c">// inscription UTXO</span>
+
+<span class="k">const</span> tx = HimshaTransaction.create([bob], [
+  LendingProgram.acceptBid(
+    collection,
+    bob,                              <span class="c">// borrower signs</span>
+    <span class="s">"frog42i0"</span>,                      <span class="c">// inscription ID</span>
+    inscriptionTxid,                  <span class="c">// inscription UTXO txid</span>
+    0,                                <span class="c">// inscription vout</span>
+    <span class="s">"tb1q_bob_ordinals_addr"</span>,        <span class="c">// where inscription returns on repay</span>
+    <span class="s">"tb1q_bob_payments_addr"</span>,        <span class="c">// where Bob receives loan funds</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Loan accepted! Bob received 0.001 BTC. Inscription is locked."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         LENDING: REPAY
+    ================================================ -->
+    <section class="tut-section" id="repay">
+      <h2>Repay a Loan</h2>
+      <p>
+        Bob repays within the 30-day window. The inscription returns to Bob;
+        Alice receives her 0.001 BTC back.
+      </p>
+
+      <pre><code class="code-block"><span class="c">// Bob repays within the loan period</span>
+<span class="k">const</span> repaymentTxid = new Uint8Array(32).fill(0xcc); <span class="c">// UTXO with >= 100,000 sats</span>
+
+<span class="k">const</span> tx = HimshaTransaction.create([bob], [
+  LendingProgram.repayLoan(
+    collection,
+    bob,
+    <span class="s">"frog42i0"</span>,     <span class="c">// inscription to reclaim</span>
+    repaymentTxid,  <span class="c">// UTXO paying back the loan</span>
+    0,
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Loan repaid! Inscription returned to Bob."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         LENDING: CLAIM DEFAULT
+    ================================================ -->
+    <section class="tut-section" id="claim-default">
+      <h2>Claim Default (Lender)</h2>
+      <p>
+        If Bob doesn't repay after 30 days, Alice can claim the inscription.
+        The ZK proof verifies the timestamp is past the deadline.
+      </p>
+
+      <pre><code class="code-block"><span class="c">// Alice claims after 30+ days of no repayment</span>
+<span class="k">const</span> tx = HimshaTransaction.create([alice], [
+  LendingProgram.claimDefault(
+    collection,
+    alice,       <span class="c">// lender signs</span>
+    <span class="s">"frog42i0"</span>, <span class="c">// defaulted inscription</span>
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"Default claimed! Frog inscription transferred to Alice."</span>);</code></pre>
+
+      <div class="info-box warning">
+        <strong>⚠️ Timing:</strong> The ZK prover reads <code>Message.timestamp</code>.
+        If the timestamp is before the deadline, the proof fails with
+        <code>ProgramError::LoanNotExpired</code>. The node rejects invalid transactions
+        before they reach the prover.
+      </div>
+    </section>
+
+    <!-- ================================================
+         NFT METADATA
+    ================================================ -->
+    <section class="tut-section" id="nft-create">
+      <h2>Create NFT Metadata</h2>
+
+      <pre><code class="code-block"><span class="k">import</span> { NftMetadataProgram, PROGRAM_IDS } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> metadataAccount = HimshaPublicKey.fromSeed(<span class="s">"frog42-metadata"</span>);
+<span class="k">const</span> mint            = HimshaPublicKey.fromSeed(<span class="s">"frog42-mint"</span>);
+<span class="k">const</span> updateAuth      = HimshaPublicKey.fromSeed(<span class="s">"collection-authority"</span>);
+
+<span class="k">const</span> tx = HimshaTransaction.create([payer, updateAuth], [
+  SystemProgram.createAccount(payer, metadataAccount, 2_000_000n, 512n, PROGRAM_IDS.nftMetadata),
+
+  NftMetadataProgram.create(
+    metadataAccount,
+    mint,
+    updateAuth,
+    <span class="s">"Frog #42"</span>,                           <span class="c">// name (max 32 chars)</span>
+    <span class="s">"FROG"</span>,                                <span class="c">// symbol (max 10 chars)</span>
+    <span class="s">"https://frogs.xyz/api/metadata/42"</span>,  <span class="c">// URI (max 200 chars)</span>
+    500,                                    <span class="c">// 5% royalty</span>
+    [{ address: updateAuth, share: 100, verified: false }],
+  )
+]);
+
+<span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">"NFT metadata created!"</span>);</code></pre>
+    </section>
+
+    <section class="tut-section" id="nft-update">
+      <h2>Update & Freeze Metadata</h2>
+      <pre><code class="code-block"><span class="c">// Update the URI (while still mutable)</span>
+<span class="k">const</span> updateTx = HimshaTransaction.create([updateAuth], [
+  NftMetadataProgram.update(
+    metadataAccount, updateAuth,
+    { uri: <span class="s">"https://frogs.xyz/api/metadata/42?v=2"</span> }
+  )
+]);
+<span class="k">await</span> conn.sendTransaction(updateTx);
+
+<span class="c">// Make immutable — no more updates possible</span>
+<span class="k">const</span> freezeTx = HimshaTransaction.create([updateAuth], [
+  NftMetadataProgram.makeImmutable(metadataAccount, updateAuth)
+]);
+<span class="k">await</span> conn.sendTransaction(freezeTx);
+console.log(<span class="s">"Metadata frozen. Cannot be updated."</span>);</code></pre>
+    </section>
+
+    <!-- ================================================
+         TESTING
+    ================================================ -->
+    <section class="tut-section" id="test-rust">
+      <h2>Run Rust Tests</h2>
+      <p>Each program crate has a <code>#[cfg(test)]</code> module covering all instructions, edge cases, and error paths.</p>
+
+      <pre><code class="code-block"><span class="c"># Run all Rust tests</span>
+cargo test --workspace
+
+<span class="c"># Run tests for a specific program</span>
+cargo test -p himsha-token-program
+cargo test -p himsha-swap-program
+cargo test -p himsha-lending-program
+cargo test -p himsha-runtime
+
+<span class="c"># Run tests with output (shows println! in tests)</span>
+cargo test --workspace -- --nocapture
+
+<span class="c"># Run a specific test by name</span>
+cargo test test_swap_constant_product -- --nocapture</code></pre>
+
+      <p>Expected test counts:</p>
+      <table class="info-table">
+        <tr><th>Crate</th><th>Tests</th></tr>
+        <tr><td>himsha-runtime</td><td>~20</td></tr>
+        <tr><td>himsha-system-program</td><td>~8</td></tr>
+        <tr><td>himsha-token-program</td><td>~15</td></tr>
+        <tr><td>himsha-swap-program</td><td>~12</td></tr>
+        <tr><td>himsha-lending-program</td><td>~15</td></tr>
+        <tr><td>himsha-nft-metadata-program</td><td>~8</td></tr>
+      </table>
+    </section>
+
+    <section class="tut-section" id="test-js">
+      <h2>Run JavaScript Tests</h2>
+      <pre><code class="code-block">cd himsha-sdk
+npm install
+npm test            <span class="c"># run Jest test suite</span>
+npm test -- --coverage  <span class="c"># with coverage report</span></code></pre>
+    </section>
+
+    <section class="tut-section" id="test-python">
+      <h2>Run Python Tests</h2>
+      <pre><code class="code-block">cd himsha-sdk-python
+pip install -e ".[dev]"
+pytest -v                   <span class="c"># all tests with verbose output</span>
+pytest tests/test_programs.py -v   <span class="c"># only program tests</span>
+pytest -k "lending" -v     <span class="c"># only lending-related tests</span></code></pre>
+    </section>
+
+  </div><!-- end tut-content -->
+</main>
+
+<footer class="footer" style="margin-top:0">
+  <div class="container">
+    <div class="footer-bottom">
+      <span>© 2025 HIMSHA Network. Educational use only.</span>
+      <a href="index.html" style="color:var(--orange)">← Back to home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/tutorials.js"></script>
+</body>
+</html>

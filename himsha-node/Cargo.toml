@@ -1,0 +1,59 @@
+[package]
+name    = "himsha-node"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA Network node — JSON-RPC API, block production, Bitcoin integration, and state storage"
+
+[[bin]]
+name = "himsha-node"
+path = "src/main.rs"
+
+[features]
+# Prove all programs through the RISC Zero universal guest (requires the
+# RISC Zero toolchain). Off by default → built-ins run via native dispatch.
+zkvm = ["himsha-vm/zkvm"]
+
+[dependencies]
+himsha-runtime = { workspace = true }
+himsha-vm      = { path = "../himsha-vm" }
+himsha-lending-program = { path = "../himsha-programs/lending" }
+himsha-threshold       = { path = "../himsha-threshold" }
+
+borsh       = { workspace = true }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+thiserror   = { workspace = true }
+anyhow      = { workspace = true }
+tokio       = { workspace = true }
+tracing     = { workspace = true }
+hex         = { workspace = true }
+sha2        = { workspace = true }
+
+# JSON-RPC server
+jsonrpsee = { version = "0.21", features = ["server", "http-client", "macros"] }
+jsonrpsee-types = "0.21"
+
+# Bitcoin
+bitcoin          = { version = "0.31", features = ["serde"] }
+bitcoincore-rpc  = "0.18"
+
+# Storage
+redb    = "1.4"
+
+# HTTP for mempool indexer
+reqwest = { version = "0.11", features = ["json"] }
+
+# Logging
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Tower middleware for CORS
+tower-http = { version = "0.4", features = ["cors"] }
+tower      = { version = "0.4" }
+hyper      = "0.14"
+
+# Serialization for node state
+bincode = "1"
+http    = "0.2"
+
+[dev-dependencies]
+himsha-system-program = { path = "../himsha-programs/system" }

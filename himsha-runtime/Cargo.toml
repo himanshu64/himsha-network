@@ -1,0 +1,16 @@
+[package]
+name    = "himsha-runtime"
+version = "0.1.0"
+edition = "2021"
+description = "Core account model, ZK state machine, and UTXO types for HIMSHA Network"
+
+[dependencies]
+borsh      = { version = "1.5", features = ["derive"] }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+sha2       = { workspace = true }
+hex        = { workspace = true }
+bs58       = { workspace = true }
+rand       = { workspace = true }
+secp256k1  = { version = "0.28", features = ["rand", "std"] }

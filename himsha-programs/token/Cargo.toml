@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-token-program"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA fungible token program — create mints, mint tokens, transfer, burn, freeze"
+
+[dependencies]
+himsha-runtime = { workspace = true }
+borsh       = { workspace = true }
+serde       = { workspace = true }
+thiserror   = { workspace = true }

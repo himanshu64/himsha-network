@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-swap-program"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA constant-product AMM — swap, deposit, withdraw liquidity"
+
+[dependencies]
+himsha-runtime      = { workspace = true }
+himsha-token-program = { path = "../token" }
+borsh            = { workspace = true }
+serde            = { workspace = true }

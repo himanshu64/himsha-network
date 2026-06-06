@@ -1,0 +1,29 @@
+# HIMSHA Network — robots.txt
+# Replace the host below with your production domain if not using GitHub Pages.
+
+User-agent: *
+Allow: /
+
+# Answer / generative engines (AEO + GEO) — explicitly welcomed
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: Bytespider
+Allow: /
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://your-org.github.io/himsha-network/sitemap.xml

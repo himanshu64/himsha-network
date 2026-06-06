@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Bitcoin Indexer + Ord — Kubernetes &amp; Terraform Setup — HIMSHA Network documentation." />
+  <title>Bitcoin Indexer + Ord — Kubernetes &amp; Terraform Setup — HIMSHA Network</title>
+  <link rel="canonical" href="https://your-org.github.io/himsha-network/bitcoin-indexer-k8s.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="HIMSHA Network" />
+  <meta property="og:title" content="Bitcoin Indexer + Ord — Kubernetes &amp; Terraform Setup — HIMSHA Network" />
+  <meta property="og:description" content="Bitcoin Indexer + Ord — Kubernetes &amp; Terraform Setup — HIMSHA Network documentation." />
+  <meta property="og:url" content="https://your-org.github.io/himsha-network/bitcoin-indexer-k8s.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png" />
+  <link rel="shortcut icon" href="assets/img/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
+  <meta name="theme-color" content="#F7931A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/docs.css" />
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html" aria-label="HIMSHA Network home">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="navHimsha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7931A"/><stop offset="1" stop-color="#FFB347"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#navHimsha)"/>
+        <rect x="8.4" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+        <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+      </svg>
+      <span>HIMSHA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#features">Why HIMSHA</a></li>
+      <li><a href="index.html#how-it-works">How It Works</a></li>
+      <li><a href="index.html#programs">Programs</a></li>
+      <li><a href="index.html#use-cases">Use Cases</a></li>
+      <li><a href="index.html#sdks">SDKs</a></li>
+      <li><a href="tutorials.html">Tutorials</a></li>
+      <li><a href="index.html#docs">Docs</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html#features" class="mobile-link">Why HIMSHA</a>
+  <a href="index.html#how-it-works" class="mobile-link">How It Works</a>
+  <a href="index.html#programs" class="mobile-link">Programs</a>
+  <a href="index.html#use-cases" class="mobile-link">Use Cases</a>
+  <a href="index.html#sdks" class="mobile-link">SDKs</a>
+  <a href="tutorials.html" class="mobile-link">Tutorials</a>
+  <a href="index.html#docs" class="mobile-link">Docs</a>
+  <a href="https://github.com/your-org/himsha-network" class="mobile-link" target="_blank" rel="noopener">GitHub &#8599;</a>
+</div>
+
+<button class="doc-toc-toggle" id="tocToggle" aria-expanded="false">
+  <span>On this page</span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<main class="doc-layout">
+  <aside class="doc-sidebar" id="docSidebar">
+    <a class="doc-back" href="index.html#docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to docs</a>
+    <div class="doc-sidebar-head">On this page</div>
+    <nav aria-label="Table of contents">
+      <a class="doc-toc-link" href="#architecture">Architecture</a>
+      <a class="doc-toc-link" href="#prerequisites">Prerequisites</a>
+      <a class="doc-toc-link" href="#repository-layout">Repository Layout</a>
+      <a class="doc-toc-link" href="#part-1-terraform">Part 1 — Terraform</a>
+      <a class="doc-toc-link" href="#part-2-kubernetes-manifests">Part 2 — Kubernetes Manifests</a>
+      <a class="doc-toc-link" href="#part-3-deploy">Part 3 — Deploy</a>
+      <a class="doc-toc-link" href="#part-4-scaling-operations">Part 4 — Scaling &amp; Operations</a>
+      <a class="doc-toc-link" href="#part-5-teardown">Part 5 — Teardown</a>
+      <a class="doc-toc-link" href="#cost-estimate-aws-testnet-us-east-1">Cost Estimate (AWS, Testnet, us-east-1)</a>
+    </nav>
+  </aside>
+
+  <div class="doc-content">
+    <article class="doc-prose">
+      <div class="doc-eyebrow">Infrastructure · Kubernetes</div>
+<h1 id="bitcoin-indexer-ord-kubernetes-terraform-setup">Bitcoin Indexer + Ord — Kubernetes &amp; Terraform Setup</h1>
+<blockquote>
+<p>⚠️ <strong>Disclaimer</strong>: Educational and development use only. Review all credentials,
+firewall rules, and IAM policies carefully before any production deployment.</p>
+</blockquote>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<pre><code>Internet
+    │
+  AWS Route53 (DNS)
+    │
+  Application Load Balancer (ALB)
+    │  TLS termination via ACM certificate
+  Ingress-NGINX
+    ├── api.him.yourdomain.com  → himsha-node:9100
+    └── ord.him.yourdomain.com  → ord:8080
+    │
+  EKS Cluster (himsha-network)
+    Namespace: himsha-infra
+    ├── StatefulSet:  bitcoin-core   (1 replica, EBS volume)
+    ├── Deployment:   electrs         (1 replica)
+    ├── Deployment:   ord             (1 replica)
+    └── Deployment:   himsha-node        (1 replica)
+    │
+  AWS EBS (gp3, encrypted)
+    ├── bitcoin-pvc   100 GB testnet / 700 GB mainnet
+    ├── electrs-pvc   100 GB
+    ├── ord-pvc       100 GB
+    └── himsha-pvc       20 GB
+    │
+  AWS Secrets Manager
+    └── him/bitcoin-rpc-creds  (username, password)
+</code></pre>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Version</th>
+<th>Install</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Terraform</td>
+<td>1.6+</td>
+<td><code>brew install terraform</code></td>
+</tr>
+<tr>
+<td>kubectl</td>
+<td>1.28+</td>
+<td><code>brew install kubectl</code></td>
+</tr>
+<tr>
+<td>Helm</td>
+<td>3.12+</td>
+<td><code>brew install helm</code></td>
+</tr>
+<tr>
+<td>AWS CLI</td>
+<td>2.x</td>
+<td><code>brew install awscli</code></td>
+</tr>
+<tr>
+<td>eksctl</td>
+<td>0.170+</td>
+<td><code>brew tap weaveworks/tap &amp;&amp; brew install eksctl</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Verify versions
+terraform version
+kubectl version --client
+helm version
+aws --version
+eksctl version
+
+# Configure AWS credentials
+aws configure
+# AWS Access Key ID: &lt;your key&gt;
+# AWS Secret Access Key: &lt;your secret&gt;
+# Default region: us-east-1
+# Default output format: json
+</code></pre>
+<hr />
+<h2 id="repository-layout">Repository Layout</h2>
+<pre><code>infrastructure/
+├── terraform/
+│   ├── main.tf              # Root module — wires everything together
+│   ├── variables.tf         # Input variables
+│   ├── outputs.tf           # Stack outputs
+│   ├── versions.tf          # Provider version locks
+│   ├── terraform.tfvars     # Values file (not committed)
+│   └── modules/
+│       ├── vpc/             # VPC, subnets, NAT
+│       ├── eks/             # EKS cluster + node groups
+│       ├── storage/         # EBS CSI driver, storage classes
+│       └── secrets/         # Secrets Manager entries
+└── kubernetes/
+    ├── namespaces.yaml
+    ├── secrets/
+    │   └── bitcoin-rpc-secret.yaml
+    ├── bitcoin/
+    │   ├── statefulset.yaml
+    │   ├── service.yaml
+    │   └── configmap.yaml
+    ├── electrs/
+    │   ├── deployment.yaml
+    │   ├── service.yaml
+    │   └── configmap.yaml
+    ├── ord/
+    │   ├── deployment.yaml
+    │   └── service.yaml
+    ├── himsha-node/
+    │   ├── deployment.yaml
+    │   ├── service.yaml
+    │   └── pvc.yaml
+    ├── ingress/
+    │   ├── ingress.yaml
+    │   └── certificate.yaml
+    └── monitoring/
+        ├── servicemonitor-electrs.yaml
+        └── servicemonitor-himsha-node.yaml
+</code></pre>
+<hr />
+<h2 id="part-1-terraform">Part 1 — Terraform</h2>
+<h3 id="terraformversionstf"><code>terraform/versions.tf</code></h3>
+<pre><code class="language-hcl">terraform {
+  required_version = &quot;&gt;= 1.6.0&quot;
+
+  required_providers {
+    aws = {
+      source  = &quot;hashicorp/aws&quot;
+      version = &quot;~&gt; 5.30&quot;
+    }
+    kubernetes = {
+      source  = &quot;hashicorp/kubernetes&quot;
+      version = &quot;~&gt; 2.25&quot;
+    }
+    helm = {
+      source  = &quot;hashicorp/helm&quot;
+      version = &quot;~&gt; 2.12&quot;
+    }
+    random = {
+      source  = &quot;hashicorp/random&quot;
+      version = &quot;~&gt; 3.6&quot;
+    }
+  }
+
+  # Remote state in S3 + DynamoDB locking
+  backend &quot;s3&quot; {
+    bucket         = &quot;himsha-terraform-state-&lt;your-account-id&gt;&quot;
+    key            = &quot;himsha-network/terraform.tfstate&quot;
+    region         = &quot;us-east-1&quot;
+    encrypt        = true
+    dynamodb_table = &quot;himsha-terraform-locks&quot;
+  }
+}
+</code></pre>
+<h3 id="terraformvariablestf"><code>terraform/variables.tf</code></h3>
+<pre><code class="language-hcl">variable &quot;aws_region&quot; {
+  description = &quot;AWS region&quot;
+  type        = string
+  default     = &quot;us-east-1&quot;
+}
+
+variable &quot;cluster_name&quot; {
+  description = &quot;EKS cluster name&quot;
+  type        = string
+  default     = &quot;himsha-network&quot;
+}
+
+variable &quot;network&quot; {
+  description = &quot;Bitcoin network: regtest, testnet, or mainnet&quot;
+  type        = string
+  default     = &quot;testnet&quot;
+
+  validation {
+    condition     = contains([&quot;regtest&quot;, &quot;testnet&quot;, &quot;mainnet&quot;], var.network)
+    error_message = &quot;Network must be regtest, testnet, or mainnet.&quot;
+  }
+}
+
+variable &quot;node_instance_type&quot; {
+  description = &quot;EC2 instance type for EKS worker nodes&quot;
+  type        = string
+  default     = &quot;t3.xlarge&quot;    # 4 vCPU, 16 GB — use m5.2xlarge for mainnet
+}
+
+variable &quot;min_nodes&quot; {
+  type    = number
+  default = 2
+}
+
+variable &quot;max_nodes&quot; {
+  type    = number
+  default = 5
+}
+
+variable &quot;bitcoin_disk_gb&quot; {
+  description = &quot;EBS volume size for Bitcoin data&quot;
+  type        = number
+  default     = 100    # Use 700 for mainnet
+}
+
+variable &quot;electrs_disk_gb&quot; {
+  type    = number
+  default = 100
+}
+
+variable &quot;ord_disk_gb&quot; {
+  type    = number
+  default = 100
+}
+
+variable &quot;domain_name&quot; {
+  description = &quot;Base domain for ingress (e.g. him.yourdomain.com)&quot;
+  type        = string
+  default     = &quot;&quot;
+}
+
+variable &quot;acm_certificate_arn&quot; {
+  description = &quot;ACM certificate ARN for TLS&quot;
+  type        = string
+  default     = &quot;&quot;
+}
+
+variable &quot;bitcoin_rpc_user&quot; {
+  description = &quot;Bitcoin RPC username&quot;
+  type        = string
+  sensitive   = true
+}
+
+variable &quot;bitcoin_rpc_pass&quot; {
+  description = &quot;Bitcoin RPC password (min 20 chars)&quot;
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.bitcoin_rpc_pass) &gt;= 20
+    error_message = &quot;Bitcoin RPC password must be at least 20 characters.&quot;
+  }
+}
+</code></pre>
+<h3 id="terraformmaintf"><code>terraform/main.tf</code></h3>
+<pre><code class="language-hcl">provider &quot;aws&quot; {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = &quot;himsha-network&quot;
+      Network     = var.network
+      ManagedBy   = &quot;terraform&quot;
+    }
+  }
+}
+
+# ---- Data sources ----
+data &quot;aws_availability_zones&quot; &quot;available&quot; {
+  state = &quot;available&quot;
+}
+
+data &quot;aws_caller_identity&quot; &quot;current&quot; {}
+
+# ---- VPC ----
+module &quot;vpc&quot; {
+  source  = &quot;terraform-aws-modules/vpc/aws&quot;
+  version = &quot;5.4&quot;
+
+  name = &quot;${var.cluster_name}-vpc&quot;
+  cidr = &quot;10.0.0.0/16&quot;
+
+  azs             = slice(data.aws_availability_zones.available.names, 0, 3)
+  private_subnets = [&quot;10.0.1.0/24&quot;, &quot;10.0.2.0/24&quot;, &quot;10.0.3.0/24&quot;]
+  public_subnets  = [&quot;10.0.101.0/24&quot;, &quot;10.0.102.0/24&quot;, &quot;10.0.103.0/24&quot;]
+
+  enable_nat_gateway     = true
+  single_nat_gateway     = false    # HA: one NAT per AZ for production
+  enable_dns_hostnames   = true
+  enable_dns_support     = true
+
+  # Required tags for EKS to discover subnets
+  private_subnet_tags = {
+    &quot;kubernetes.io/role/internal-elb&quot;             = &quot;1&quot;
+    &quot;kubernetes.io/cluster/${var.cluster_name}&quot;   = &quot;owned&quot;
+  }
+  public_subnet_tags = {
+    &quot;kubernetes.io/role/elb&quot;                      = &quot;1&quot;
+    &quot;kubernetes.io/cluster/${var.cluster_name}&quot;   = &quot;owned&quot;
+  }
+}
+
+# ---- EKS Cluster ----
+module &quot;eks&quot; {
+  source  = &quot;terraform-aws-modules/eks/aws&quot;
+  version = &quot;20.4&quot;
+
+  cluster_name    = var.cluster_name
+  cluster_version = &quot;1.29&quot;
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  # Public endpoint for kubectl (restrict in production)
+  cluster_endpoint_public_access       = true
+  cluster_endpoint_public_access_cidrs = [&quot;0.0.0.0/0&quot;]   # Restrict to your IP
+
+  # EKS Managed Add-ons
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent              = true
+      service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
+    }
+  }
+
+  # Managed node group
+  eks_managed_node_groups = {
+    bitcoin-nodes = {
+      name           = &quot;bitcoin-nodes&quot;
+      instance_types = [var.node_instance_type]
+      ami_type       = &quot;AL2_x86_64&quot;
+
+      min_size     = var.min_nodes
+      max_size     = var.max_nodes
+      desired_size = var.min_nodes
+
+      # Node labels for pod scheduling
+      labels = {
+        role = &quot;bitcoin-infra&quot;
+      }
+
+      # Taint so only bitcoin workloads run here (optional)
+      taints = []
+
+      block_device_mappings = {
+        xvda = {
+          device_name = &quot;/dev/xvda&quot;
+          ebs = {
+            volume_size           = 100   # Node OS disk
+            volume_type           = &quot;gp3&quot;
+            iops                  = 3000
+            throughput            = 125
+            encrypted             = true
+            delete_on_termination = true
+          }
+        }
+      }
+
+      iam_role_additional_policies = {
+        ebs_csi = &quot;arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy&quot;
+      }
+    }
+  }
+}
+
+# ---- IAM Role for EBS CSI Driver ----
+module &quot;ebs_csi_irsa&quot; {
+  source  = &quot;terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks&quot;
+  version = &quot;5.30&quot;
+
+  role_name             = &quot;${var.cluster_name}-ebs-csi&quot;
+  attach_ebs_csi_policy = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = [&quot;kube-system:ebs-csi-controller-sa&quot;]
+    }
+  }
+}
+
+# ---- Secrets Manager ----
+resource &quot;aws_secretsmanager_secret&quot; &quot;bitcoin_rpc&quot; {
+  name                    = &quot;him/${var.network}/bitcoin-rpc-creds&quot;
+  recovery_window_in_days = 7
+  description             = &quot;Bitcoin Core RPC credentials for HIMSHA Network&quot;
+}
+
+resource &quot;aws_secretsmanager_secret_version&quot; &quot;bitcoin_rpc&quot; {
+  secret_id = aws_secretsmanager_secret.bitcoin_rpc.id
+  secret_string = jsonencode({
+    username = var.bitcoin_rpc_user
+    password = var.bitcoin_rpc_pass
+  })
+}
+
+# ---- Kubernetes namespace + StorageClass ----
+provider &quot;kubernetes&quot; {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+
+  exec {
+    api_version = &quot;client.authentication.k8s.io/v1beta1&quot;
+    command     = &quot;aws&quot;
+    args        = [&quot;eks&quot;, &quot;get-token&quot;, &quot;--cluster-name&quot;, var.cluster_name]
+  }
+}
+
+resource &quot;kubernetes_namespace&quot; &quot;himsha_infra&quot; {
+  metadata {
+    name = &quot;himsha-infra&quot;
+    labels = {
+      &quot;app.kubernetes.io/managed-by&quot; = &quot;terraform&quot;
+    }
+  }
+}
+
+resource &quot;kubernetes_storage_class&quot; &quot;gp3&quot; {
+  metadata {
+    name = &quot;gp3-encrypted&quot;
+    annotations = {
+      &quot;storageclass.kubernetes.io/is-default-class&quot; = &quot;true&quot;
+    }
+  }
+  storage_provisioner    = &quot;ebs.csi.aws.com&quot;
+  reclaim_policy         = &quot;Retain&quot;        # Retain data even if PVC is deleted
+  volume_binding_mode    = &quot;WaitForFirstConsumer&quot;
+  allow_volume_expansion = true
+
+  parameters = {
+    type      = &quot;gp3&quot;
+    iops      = &quot;3000&quot;
+    throughput = &quot;125&quot;
+    encrypted = &quot;true&quot;
+  }
+}
+
+# ---- NGINX Ingress Controller (via Helm) ----
+provider &quot;helm&quot; {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+
+    exec {
+      api_version = &quot;client.authentication.k8s.io/v1beta1&quot;
+      command     = &quot;aws&quot;
+      args        = [&quot;eks&quot;, &quot;get-token&quot;, &quot;--cluster-name&quot;, var.cluster_name]
+    }
+  }
+}
+
+resource &quot;helm_release&quot; &quot;nginx_ingress&quot; {
+  name             = &quot;ingress-nginx&quot;
+  repository       = &quot;https://kubernetes.github.io/ingress-nginx&quot;
+  chart            = &quot;ingress-nginx&quot;
+  version          = &quot;4.9.0&quot;
+  namespace        = &quot;ingress-nginx&quot;
+  create_namespace = true
+
+  values = [&lt;&lt;-YAML
+    controller:
+      service:
+        type: LoadBalancer
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: &quot;nlb&quot;
+          service.beta.kubernetes.io/aws-load-balancer-scheme: &quot;internet-facing&quot;
+          service.beta.kubernetes.io/aws-load-balancer-ssl-cert: &quot;${var.acm_certificate_arn}&quot;
+      metrics:
+        enabled: true
+  YAML
+  ]
+}
+</code></pre>
+<h3 id="terraformoutputstf"><code>terraform/outputs.tf</code></h3>
+<pre><code class="language-hcl">output &quot;cluster_endpoint&quot; {
+  value = module.eks.cluster_endpoint
+}
+
+output &quot;cluster_name&quot; {
+  value = module.eks.cluster_name
+}
+
+output &quot;configure_kubectl&quot; {
+  description = &quot;Run this command to configure kubectl&quot;
+  value       = &quot;aws eks update-kubeconfig --region ${var.aws_region} --name ${var.cluster_name}&quot;
+}
+
+output &quot;bitcoin_secret_arn&quot; {
+  value = aws_secretsmanager_secret.bitcoin_rpc.arn
+}
+
+output &quot;load_balancer_hostname&quot; {
+  value       = helm_release.nginx_ingress.status
+  description = &quot;After deploy, get LB hostname: kubectl -n ingress-nginx get svc&quot;
+}
+</code></pre>
+<h3 id="terraformterraformtfvars-not-committed"><code>terraform/terraform.tfvars</code> (not committed)</h3>
+<pre><code class="language-hcl">aws_region          = &quot;us-east-1&quot;
+cluster_name        = &quot;himsha-network&quot;
+network             = &quot;testnet&quot;
+node_instance_type  = &quot;t3.xlarge&quot;
+min_nodes           = 2
+max_nodes           = 5
+bitcoin_disk_gb     = 100
+electrs_disk_gb     = 100
+ord_disk_gb         = 100
+domain_name         = &quot;him.yourdomain.com&quot;
+acm_certificate_arn = &quot;arn:aws:acm:us-east-1:123456789012:certificate/...&quot;
+
+# These are sensitive — consider using AWS SSM or environment variables instead
+bitcoin_rpc_user    = &quot;himuser&quot;
+bitcoin_rpc_pass    = &quot;your_strong_random_password_here_min_20_chars&quot;
+</code></pre>
+<hr />
+<h2 id="part-2-kubernetes-manifests">Part 2 — Kubernetes Manifests</h2>
+<h3 id="kubernetesnamespacesyaml"><code>kubernetes/namespaces.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Namespace
+metadata:
+  name: himsha-infra
+  labels:
+    app.kubernetes.io/managed-by: terraform
+</code></pre>
+<h3 id="kubernetessecretsbitcoin-rpc-secretyaml"><code>kubernetes/secrets/bitcoin-rpc-secret.yaml</code></h3>
+<pre><code class="language-yaml"># In production: use External Secrets Operator to pull from AWS Secrets Manager.
+# For development only — do not commit real credentials.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bitcoin-rpc-creds
+  namespace: himsha-infra
+type: Opaque
+stringData:
+  username: &quot;himuser&quot;
+  password: &quot;change_me_before_use&quot;
+</code></pre>
+<h3 id="kubernetesbitcoinconfigmapyaml"><code>kubernetes/bitcoin/configmap.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bitcoin-config
+  namespace: himsha-infra
+data:
+  bitcoin.conf: |
+    testnet=1
+    server=1
+    txindex=1
+    blockfilterindex=1
+    rpcbind=0.0.0.0
+    rpcallowip=0.0.0.0/0
+    zmqpubrawblock=tcp://0.0.0.0:28332
+    zmqpubrawtx=tcp://0.0.0.0:28333
+    zmqpubhashblock=tcp://0.0.0.0:28334
+    dbcache=1024
+    maxmempool=300
+    maxconnections=40
+</code></pre>
+<h3 id="kubernetesbitcoinstatefulsetyaml"><code>kubernetes/bitcoin/statefulset.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bitcoin-core
+  namespace: himsha-infra
+  labels:
+    app: bitcoin-core
+spec:
+  serviceName: bitcoin-core
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bitcoin-core
+  template:
+    metadata:
+      labels:
+        app: bitcoin-core
+      annotations:
+        prometheus.io/scrape: &quot;false&quot;
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: bitcoin-core
+          image: ruimarinho/bitcoin-core:24
+          imagePullPolicy: IfNotPresent
+          command:
+            - bitcoind
+            - -conf=/bitcoin-config/bitcoin.conf
+            - -datadir=/data
+            - -rpcuser=$(BITCOIN_RPC_USER)
+            - -rpcpassword=$(BITCOIN_RPC_PASS)
+          env:
+            - name: BITCOIN_RPC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: username
+            - name: BITCOIN_RPC_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: password
+          ports:
+            - name: rpc
+              containerPort: 18332    # testnet; 8332 mainnet
+            - name: zmq-block
+              containerPort: 28332
+            - name: zmq-tx
+              containerPort: 28333
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - &gt;
+                  bitcoin-cli -testnet
+                  -rpcuser=$(BITCOIN_RPC_USER)
+                  -rpcpassword=$(BITCOIN_RPC_PASS)
+                  getblockchaininfo
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 20
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - &gt;
+                  bitcoin-cli -testnet
+                  -rpcuser=$(BITCOIN_RPC_USER)
+                  -rpcpassword=$(BITCOIN_RPC_PASS)
+                  ping
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: &quot;1000m&quot;
+              memory: &quot;2Gi&quot;
+            limits:
+              cpu: &quot;4000m&quot;
+              memory: &quot;8Gi&quot;
+          volumeMounts:
+            - name: bitcoin-data
+              mountPath: /data
+            - name: bitcoin-config
+              mountPath: /bitcoin-config
+      volumes:
+        - name: bitcoin-config
+          configMap:
+            name: bitcoin-config
+  volumeClaimTemplates:
+    - metadata:
+        name: bitcoin-data
+      spec:
+        accessModes: [&quot;ReadWriteOnce&quot;]
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 100Gi    # 700Gi for mainnet
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitcoin-core
+  namespace: himsha-infra
+spec:
+  selector:
+    app: bitcoin-core
+  clusterIP: None    # Headless — DNS for StatefulSet
+  ports:
+    - name: rpc
+      port: 18332
+    - name: zmq-block
+      port: 28332
+    - name: zmq-tx
+      port: 28333
+    - name: zmq-hashblock
+      port: 28334
+</code></pre>
+<h3 id="kuberneteselectrsconfigmapyaml"><code>kubernetes/electrs/configmap.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: electrs-config
+  namespace: himsha-infra
+data:
+  config.toml: |
+    network = &quot;testnet&quot;
+    daemon_rpc_addr = &quot;bitcoin-core:18332&quot;
+    daemon_dir = &quot;/bitcoin-data&quot;
+    db_dir = &quot;/electrs-data&quot;
+    electrum_rpc_addr = &quot;0.0.0.0:50001&quot;
+    http_addr = &quot;0.0.0.0:3002&quot;
+    monitoring_addr = &quot;0.0.0.0:4224&quot;
+    wait_duration_secs = 5
+    index_batch_size = 10
+    bulk_index_threads = 4
+</code></pre>
+<h3 id="kuberneteselectrsdeploymentyaml"><code>kubernetes/electrs/deployment.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: electrs
+  namespace: himsha-infra
+  labels:
+    app: electrs
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate    # Electrs needs exclusive access to its DB
+  selector:
+    matchLabels:
+      app: electrs
+  template:
+    metadata:
+      labels:
+        app: electrs
+      annotations:
+        prometheus.io/scrape: &quot;true&quot;
+        prometheus.io/port:   &quot;4224&quot;
+        prometheus.io/path:   &quot;/metrics&quot;
+    spec:
+      initContainers:
+        - name: wait-for-bitcoin
+          image: curlimages/curl:8
+          command: [&quot;/bin/sh&quot;, &quot;-c&quot;]
+          args:
+            - |
+              echo &quot;Waiting for Bitcoin Core...&quot;
+              until curl -sf \
+                -u &quot;$(cat /rpc/username):$(cat /rpc/password)&quot; \
+                -X POST http://bitcoin-core:18332 \
+                -H &quot;Content-Type: text/plain&quot; \
+                -d '{&quot;method&quot;:&quot;getblockchaininfo&quot;,&quot;params&quot;:[],&quot;id&quot;:1}'; do
+                echo &quot;Bitcoin not ready, retrying in 10s...&quot;
+                sleep 10
+              done
+              echo &quot;Bitcoin Core is ready.&quot;
+          volumeMounts:
+            - name: bitcoin-rpc-creds
+              mountPath: /rpc
+      containers:
+        - name: electrs
+          image: getumbrel/electrs:v0.10.2
+          command:
+            - electrs
+            - --conf
+            - /etc/electrs/config.toml
+            - --auth
+            - $(BITCOIN_RPC_USER):$(BITCOIN_RPC_PASS)
+          env:
+            - name: BITCOIN_RPC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: username
+            - name: BITCOIN_RPC_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: password
+          ports:
+            - name: electrum
+              containerPort: 50001
+            - name: http
+              containerPort: 3002
+            - name: metrics
+              containerPort: 4224
+          readinessProbe:
+            httpGet:
+              path: /blocks/tip/height
+              port: 3002
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /blocks/tip/height
+              port: 3002
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: &quot;500m&quot;
+              memory: &quot;1Gi&quot;
+            limits:
+              cpu: &quot;2000m&quot;
+              memory: &quot;4Gi&quot;
+          volumeMounts:
+            - name: electrs-data
+              mountPath: /electrs-data
+            - name: bitcoin-data
+              mountPath: /bitcoin-data
+              readOnly: true
+            - name: electrs-config
+              mountPath: /etc/electrs
+      volumes:
+        - name: electrs-data
+          persistentVolumeClaim:
+            claimName: electrs-pvc
+        - name: bitcoin-data
+          persistentVolumeClaim:
+            claimName: bitcoin-core-bitcoin-data-bitcoin-core-0   # StatefulSet PVC name
+        - name: electrs-config
+          configMap:
+            name: electrs-config
+        - name: bitcoin-rpc-creds
+          secret:
+            secretName: bitcoin-rpc-creds
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: electrs-pvc
+  namespace: himsha-infra
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  storageClassName: gp3-encrypted
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: electrs
+  namespace: himsha-infra
+spec:
+  selector:
+    app: electrs
+  ports:
+    - name: electrum
+      port: 50001
+    - name: http
+      port: 3002
+    - name: metrics
+      port: 4224
+</code></pre>
+<h3 id="kubernetesorddeploymentyaml"><code>kubernetes/ord/deployment.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ord
+  namespace: himsha-infra
+  labels:
+    app: ord
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ord
+  template:
+    metadata:
+      labels:
+        app: ord
+    spec:
+      initContainers:
+        - name: wait-for-bitcoin
+          image: curlimages/curl:8
+          command: [&quot;/bin/sh&quot;, &quot;-c&quot;]
+          args:
+            - |
+              until curl -sf \
+                -u &quot;$(BITCOIN_RPC_USER):$(BITCOIN_RPC_PASS)&quot; \
+                -X POST http://bitcoin-core:18332 \
+                -H &quot;Content-Type: text/plain&quot; \
+                -d '{&quot;method&quot;:&quot;getblockchaininfo&quot;,&quot;params&quot;:[],&quot;id&quot;:1}'; do
+                sleep 10
+              done
+          env:
+            - name: BITCOIN_RPC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: username
+            - name: BITCOIN_RPC_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: password
+      containers:
+        - name: ord
+          image: ordinals/ord:latest
+          command:
+            - ord
+            - --testnet
+            - --bitcoin-rpc-url
+            - &quot;http://bitcoin-core:18332&quot;
+            - --bitcoin-rpc-username
+            - $(BITCOIN_RPC_USER)
+            - --bitcoin-rpc-password
+            - $(BITCOIN_RPC_PASS)
+            - --data-dir
+            - /ord-data
+            - server
+            - --http-port
+            - &quot;8080&quot;
+          env:
+            - name: BITCOIN_RPC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: username
+            - name: BITCOIN_RPC_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: password
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 180
+            periodSeconds: 60
+          resources:
+            requests:
+              cpu: &quot;500m&quot;
+              memory: &quot;1Gi&quot;
+            limits:
+              cpu: &quot;3000m&quot;
+              memory: &quot;6Gi&quot;
+          volumeMounts:
+            - name: ord-data
+              mountPath: /ord-data
+            - name: bitcoin-data
+              mountPath: /bitcoin-data
+              readOnly: true
+      volumes:
+        - name: ord-data
+          persistentVolumeClaim:
+            claimName: ord-pvc
+        - name: bitcoin-data
+          persistentVolumeClaim:
+            claimName: bitcoin-core-bitcoin-data-bitcoin-core-0
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ord-pvc
+  namespace: himsha-infra
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  storageClassName: gp3-encrypted
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ord
+  namespace: himsha-infra
+spec:
+  selector:
+    app: ord
+  ports:
+    - name: http
+      port: 8080
+</code></pre>
+<h3 id="kuberneteshimsha-nodedeploymentyaml"><code>kubernetes/himsha-node/deployment.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: himsha-node
+  namespace: himsha-infra
+  labels:
+    app: himsha-node
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: himsha-node
+  template:
+    metadata:
+      labels:
+        app: himsha-node
+      annotations:
+        prometheus.io/scrape: &quot;true&quot;
+        prometheus.io/port:   &quot;9101&quot;
+    spec:
+      containers:
+        - name: himsha-node
+          image: ghcr.io/your-org/himsha-node:latest
+          imagePullPolicy: Always
+          env:
+            - name: HIMSHA_DB
+              value: /data/him.redb
+            - name: BITCOIN_RPC_URL
+              value: &quot;http://bitcoin-core:18332&quot;
+            - name: BITCOIN_RPC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: username
+            - name: BITCOIN_RPC_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: bitcoin-rpc-creds
+                  key: password
+            - name: ELECTRS_URL
+              value: &quot;http://electrs:3002&quot;
+            - name: ORD_URL
+              value: &quot;http://ord:8080&quot;
+            - name: RUST_LOG
+              value: &quot;himsha_node=info,warn&quot;
+          ports:
+            - name: rpc
+              containerPort: 9100
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - &gt;
+                  curl -sf -X POST http://localhost:9100
+                  -H &quot;Content-Type: application/json&quot;
+                  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_isNodeReady&quot;,&quot;params&quot;:[]}'
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - &gt;
+                  curl -sf -X POST http://localhost:9100
+                  -H &quot;Content-Type: application/json&quot;
+                  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_getSlot&quot;,&quot;params&quot;:[]}'
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: &quot;250m&quot;
+              memory: &quot;512Mi&quot;
+            limits:
+              cpu: &quot;2000m&quot;
+              memory: &quot;4Gi&quot;
+          volumeMounts:
+            - name: himsha-data
+              mountPath: /data
+      volumes:
+        - name: himsha-data
+          persistentVolumeClaim:
+            claimName: himsha-node-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: himsha-node-pvc
+  namespace: himsha-infra
+spec:
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  storageClassName: gp3-encrypted
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: himsha-node
+  namespace: himsha-infra
+spec:
+  selector:
+    app: himsha-node
+  ports:
+    - name: rpc
+      port: 9100
+</code></pre>
+<h3 id="kubernetesingressingressyaml"><code>kubernetes/ingress/ingress.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: himsha-ingress
+  namespace: himsha-infra
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: &quot;true&quot;
+    nginx.ingress.kubernetes.io/proxy-read-timeout: &quot;300&quot;
+    nginx.ingress.kubernetes.io/proxy-body-size: &quot;10m&quot;
+    # Rate limiting — protect RPC endpoint
+    nginx.ingress.kubernetes.io/limit-rps: &quot;20&quot;
+    nginx.ingress.kubernetes.io/limit-connections: &quot;10&quot;
+spec:
+  tls:
+    - hosts:
+        - api.him.yourdomain.com
+        - ord.him.yourdomain.com
+      secretName: himsha-tls-secret
+  rules:
+    - host: api.him.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: himsha-node
+                port:
+                  number: 9100
+    - host: ord.him.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ord
+                port:
+                  number: 8080
+</code></pre>
+<h3 id="kubernetesmonitoringservicemonitor-electrsyaml"><code>kubernetes/monitoring/servicemonitor-electrs.yaml</code></h3>
+<pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: electrs
+  namespace: himsha-infra
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: electrs
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+</code></pre>
+<hr />
+<h2 id="part-3-deploy">Part 3 — Deploy</h2>
+<h3 id="step-1-bootstrap-terraform-state-bucket">Step 1: Bootstrap Terraform state bucket</h3>
+<pre><code class="language-bash"># Create S3 bucket for state (one-time)
+aws s3api create-bucket \
+  --bucket himsha-terraform-state-$(aws sts get-caller-identity --query Account --output text) \
+  --region us-east-1
+
+aws s3api put-bucket-versioning \
+  --bucket himsha-terraform-state-$(aws sts get-caller-identity --query Account --output text) \
+  --versioning-configuration Status=Enabled
+
+# Create DynamoDB lock table
+aws dynamodb create-table \
+  --table-name himsha-terraform-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --region us-east-1
+</code></pre>
+<h3 id="step-2-apply-terraform">Step 2: Apply Terraform</h3>
+<pre><code class="language-bash">cd infrastructure/terraform
+
+# Initialize
+terraform init
+
+# Preview changes
+terraform plan -var-file=terraform.tfvars -out=tfplan
+
+# Apply (creates VPC, EKS, EBS driver, nginx ingress)
+terraform apply tfplan
+
+# Configure kubectl
+$(terraform output -raw configure_kubectl)
+
+# Verify cluster
+kubectl get nodes
+kubectl get ns
+</code></pre>
+<h3 id="step-3-deploy-kubernetes-workloads">Step 3: Deploy Kubernetes workloads</h3>
+<pre><code class="language-bash">cd infrastructure/kubernetes
+
+# Apply in order
+kubectl apply -f namespaces.yaml
+kubectl apply -f secrets/bitcoin-rpc-secret.yaml
+
+kubectl apply -f bitcoin/configmap.yaml
+kubectl apply -f bitcoin/statefulset.yaml
+
+# Wait for Bitcoin to be healthy before starting indexers
+kubectl -n himsha-infra wait --for=condition=ready pod/bitcoin-core-0 --timeout=300s
+
+kubectl apply -f electrs/configmap.yaml
+kubectl apply -f electrs/deployment.yaml
+kubectl apply -f ord/deployment.yaml
+kubectl apply -f himsha-node/deployment.yaml
+kubectl apply -f ingress/ingress.yaml
+kubectl apply -f monitoring/
+</code></pre>
+<h3 id="step-4-verify">Step 4: Verify</h3>
+<pre><code class="language-bash"># Watch all pods start
+kubectl -n himsha-infra get pods -w
+
+# Check pod logs
+kubectl -n himsha-infra logs -f statefulset/bitcoin-core
+kubectl -n himsha-infra logs -f deployment/electrs
+kubectl -n himsha-infra logs -f deployment/ord
+kubectl -n himsha-infra logs -f deployment/himsha-node
+
+# Port-forward for local testing (no ingress needed)
+kubectl -n himsha-infra port-forward svc/himsha-node 9100:9100 &amp;
+kubectl -n himsha-infra port-forward svc/electrs  3002:3002 &amp;
+kubectl -n himsha-infra port-forward svc/ord       8080:8080 &amp;
+
+# Verify HIMSHA node
+curl -s -X POST http://localhost:9100 \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_isNodeReady&quot;,&quot;params&quot;:[]}' | jq .
+
+# Verify Electrs
+curl -s http://localhost:3002/blocks/tip/height
+
+# Verify Ord
+curl -s http://localhost:8080/status | jq .
+</code></pre>
+<hr />
+<h2 id="part-4-scaling-operations">Part 4 — Scaling &amp; Operations</h2>
+<pre><code class="language-bash"># Scale HIMSHA node replicas (note: stateful — only safe if using shared PVC or read replicas)
+kubectl -n himsha-infra scale deployment himsha-node --replicas=2
+
+# Expand a PVC (gp3 supports online expansion)
+kubectl -n himsha-infra patch pvc electrs-pvc -p '{&quot;spec&quot;:{&quot;resources&quot;:{&quot;requests&quot;:{&quot;storage&quot;:&quot;200Gi&quot;}}}}'
+
+# Rolling restart (pull new image)
+kubectl -n himsha-infra rollout restart deployment/himsha-node
+
+# Force re-index (delete and recreate Electrs PVC — DESTRUCTIVE)
+kubectl -n himsha-infra delete deployment electrs
+kubectl -n himsha-infra delete pvc electrs-pvc
+kubectl apply -f electrs/deployment.yaml
+
+# Execute a command inside a pod
+kubectl -n himsha-infra exec -it deployment/himsha-node -- /bin/sh
+</code></pre>
+<hr />
+<h2 id="part-5-teardown">Part 5 — Teardown</h2>
+<pre><code class="language-bash"># Remove Kubernetes resources (PVCs with Retain policy keep data)
+kubectl delete namespace himsha-infra
+
+# Destroy AWS infrastructure (IRREVERSIBLE — destroys all data)
+cd infrastructure/terraform
+terraform destroy -var-file=terraform.tfvars
+</code></pre>
+<hr />
+<h2 id="cost-estimate-aws-testnet-us-east-1">Cost Estimate (AWS, Testnet, us-east-1)</h2>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Spec</th>
+<th>$/month</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EKS control plane</td>
+<td>—</td>
+<td>$73</td>
+</tr>
+<tr>
+<td>2× t3.xlarge nodes</td>
+<td>4 vCPU / 16 GB</td>
+<td>$240</td>
+</tr>
+<tr>
+<td>EBS bitcoin-pvc</td>
+<td>100 GB gp3</td>
+<td>$8</td>
+</tr>
+<tr>
+<td>EBS electrs-pvc</td>
+<td>100 GB gp3</td>
+<td>$8</td>
+</tr>
+<tr>
+<td>EBS ord-pvc</td>
+<td>100 GB gp3</td>
+<td>$8</td>
+</tr>
+<tr>
+<td>EBS himsha-pvc</td>
+<td>20 GB gp3</td>
+<td>$2</td>
+</tr>
+<tr>
+<td>NAT gateway (2 AZ)</td>
+<td>—</td>
+<td>$90</td>
+</tr>
+<tr>
+<td>ALB</td>
+<td>—</td>
+<td>$18</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td></td>
+<td><strong>~$447/mo</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Mainnet: Add ~$50/mo for larger EBS volumes (700 GB bitcoin + 200 GB others).</p>
+</blockquote>
+    </article>
+  </div>
+</main>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/docs.js"></script>
+</body>
+</html>

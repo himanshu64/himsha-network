@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="HIMSHA Network — ZK-proven Bitcoin programmability layer. Every state transition is proven correct by cryptographic proof, not validator majority." />
+  <meta name="keywords" content="Bitcoin, ZK proofs, RISC Zero, programmability, DeFi, Ordinals, smart contracts" />
+  <meta property="og:title" content="HIMSHA Network — ZK-Proven Bitcoin Programmability" />
+  <meta property="og:description" content="Build on Bitcoin with zero-knowledge proofs. No bridges. No trust assumptions." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/img/apple-touch-icon.png" />
+  <title>HIMSHA Network — ZK-Proven Bitcoin Programmability</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png" />
+  <link rel="shortcut icon" href="assets/img/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
+  <meta name="theme-color" content="#F7931A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+
+  <!-- ============================================================
+       SEO / AEO / GEO  —  replace the base URL below with your
+       production domain (one place: search "your-org.github.io").
+  ============================================================ -->
+  <link rel="canonical" href="https://your-org.github.io/himsha-network/index.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
+  <meta name="author" content="HIMSHA Network" />
+  <meta name="generator" content="HIMSHA Network" />
+  <!-- Google Search Console: paste the token from Search Console → Settings → Ownership verification → HTML tag -->
+  <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_SEARCH_CONSOLE_TOKEN" />
+  <!-- Bing Webmaster Tools (optional) -->
+  <meta name="msvalidate.01" content="REPLACE_WITH_BING_TOKEN" />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="HIMSHA Network" />
+  <meta property="og:url" content="https://your-org.github.io/himsha-network/index.html" />
+  <meta property="og:locale" content="en" />
+  <meta property="og:locale:alternate" content="es" />
+  <meta property="og:locale:alternate" content="fr" />
+  <meta property="og:locale:alternate" content="de" />
+  <meta property="og:locale:alternate" content="zh_Hans" />
+  <meta property="og:locale:alternate" content="ja" />
+  <meta property="og:locale:alternate" content="hi" />
+  <meta property="og:locale:alternate" content="te" />
+  <meta property="og:locale:alternate" content="ta" />
+  <meta property="og:locale:alternate" content="kn" />
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="HIMSHA Network — ZK-Proven Bitcoin Programmability" />
+  <meta name="twitter:description" content="Build on Bitcoin with zero-knowledge proofs. No bridges. No trust assumptions. Fully open source." />
+  <meta name="twitter:image" content="https://your-org.github.io/himsha-network/assets/img/apple-touch-icon.png" />
+
+  <!-- hreflang alternates (multi-language SEO) -->
+  <link rel="alternate" hreflang="x-default" href="https://your-org.github.io/himsha-network/index.html" />
+  <link rel="alternate" hreflang="en"      href="https://your-org.github.io/himsha-network/index.html" />
+  <link rel="alternate" hreflang="es"      href="https://your-org.github.io/himsha-network/index.html?lang=es" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://your-org.github.io/himsha-network/index.html?lang=zh-Hans" />
+  <link rel="alternate" hreflang="ja"      href="https://your-org.github.io/himsha-network/index.html?lang=ja" />
+  <link rel="alternate" hreflang="fr"      href="https://your-org.github.io/himsha-network/index.html?lang=fr" />
+  <link rel="alternate" hreflang="de"      href="https://your-org.github.io/himsha-network/index.html?lang=de" />
+  <link rel="alternate" hreflang="hi"      href="https://your-org.github.io/himsha-network/index.html?lang=hi" />
+  <link rel="alternate" hreflang="te"      href="https://your-org.github.io/himsha-network/index.html?lang=te" />
+  <link rel="alternate" hreflang="ta"      href="https://your-org.github.io/himsha-network/index.html?lang=ta" />
+  <link rel="alternate" hreflang="kn"      href="https://your-org.github.io/himsha-network/index.html?lang=kn" />
+
+  <!-- Structured data: Organization + WebSite + SoftwareSourceCode + FAQ (SEO/AEO/GEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://your-org.github.io/himsha-network/#org",
+        "name": "HIMSHA Network",
+        "url": "https://your-org.github.io/himsha-network/",
+        "logo": "https://your-org.github.io/himsha-network/assets/img/apple-touch-icon.png",
+        "description": "Fully open-source, ZK-proven Bitcoin programmability layer.",
+        "sameAs": ["https://github.com/your-org/himsha-network"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://your-org.github.io/himsha-network/#website",
+        "url": "https://your-org.github.io/himsha-network/",
+        "name": "HIMSHA Network",
+        "inLanguage": ["en","es","fr","de","zh-Hans","ja","hi","te","ta","kn"],
+        "publisher": { "@id": "https://your-org.github.io/himsha-network/#org" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "HIMSHA Network",
+        "description": "An experimental Bitcoin programmability layer where every state transition is proven correct by a RISC Zero zero-knowledge receipt instead of validator majority vote. Educational, not production-grade.",
+        "codeRepository": "https://github.com/your-org/himsha-network",
+        "programmingLanguage": ["Rust", "TypeScript", "Python", "Dart"],
+        "runtimePlatform": "RISC Zero zkVM",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "keywords": "Bitcoin, zero-knowledge proofs, RISC Zero, programmability, Ordinals, Runes, DeFi"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is HIMSHA Network?",
+            "acceptedAnswer": { "@type": "Answer", "text": "HIMSHA (Hashable Instruction Machine) is a fully open-source, experimental Bitcoin programmability layer. Every state transition is proven correct by a RISC Zero zero-knowledge receipt rather than by validator majority vote. It is an educational proof of concept and is not production-grade." }
+          },
+          {
+            "@type": "Question",
+            "name": "How is HIMSHA different from other Bitcoin L2s?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Correctness comes from a ZK proof (math) instead of validator consensus or a fraud-proof window. HIMSHA requires no bridges, makes privacy possible, and does not depend on validator honesty for correctness." }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need a bridge or wrapped Bitcoin to use HIMSHA?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. Account state is anchored to Bitcoin UTXOs and real Bitcoin transactions are broadcast on Layer 1. There are no bridges and no wrapped tokens." }
+          },
+          {
+            "@type": "Question",
+            "name": "What programs are built into HIMSHA?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Eight programs ship in the box: System, Token, ATA, Swap (AMM), Lending against Ordinal inscriptions, NFT Metadata, Runes, and Money Market." }
+          },
+          {
+            "@type": "Question",
+            "name": "Which languages have an SDK?",
+            "acceptedAnswer": { "@type": "Answer", "text": "TypeScript, Python, and Dart, all sharing one API surface so you can build a frontend, mobile app, or server." }
+          },
+          {
+            "@type": "Question",
+            "name": "Is HIMSHA production-ready?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. HIMSHA is an educational proof of concept. It is not audited and must not be used with real Bitcoin mainnet funds." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<!-- ================================================
+     NAV
+================================================ -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#" aria-label="HIMSHA Network home">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="navHimsha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7931A"/><stop offset="1" stop-color="#FFB347"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#navHimsha)"/>
+        <rect x="8.4" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+        <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+      </svg>
+      <span>HIMSHA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features" data-i18n="nav.why">Why HIMSHA</a></li>
+      <li><a href="#how-it-works" data-i18n="nav.how">How It Works</a></li>
+      <li><a href="#programs" data-i18n="nav.programs">Programs</a></li>
+      <li><a href="#use-cases" data-i18n="nav.usecases">Use Cases</a></li>
+      <li><a href="#sdks" data-i18n="nav.sdks">SDKs</a></li>
+      <li><a href="tutorials.html" data-i18n="nav.tutorials">Tutorials</a></li>
+    </ul>
+    <div class="nav-cta">
+      <span class="lang-mount"></span>
+      <a class="btn btn-ghost" href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary" href="#get-started" data-i18n="nav.getStarted">Get Started</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" class="mobile-link" data-i18n="nav.why">Why HIMSHA</a>
+  <a href="#how-it-works" class="mobile-link" data-i18n="nav.how">How It Works</a>
+  <a href="#programs" class="mobile-link" data-i18n="nav.programs">Programs</a>
+  <a href="#use-cases" class="mobile-link" data-i18n="nav.usecases">Use Cases</a>
+  <a href="#sdks" class="mobile-link" data-i18n="nav.sdks">SDKs</a>
+  <a href="tutorials.html" class="mobile-link" data-i18n="nav.tutorials">Tutorials</a>
+  <a href="#docs" class="mobile-link">Docs</a>
+  <a href="https://github.com/your-org/himsha-network" class="mobile-link" target="_blank" rel="noopener">GitHub ↗</a>
+  <span class="lang-mount"></span>
+  <div class="mobile-cta">
+    <a class="btn btn-primary btn-lg" href="#get-started" data-i18n="nav.getStarted">Get Started</a>
+  </div>
+</div>
+
+<!-- ================================================
+     HERO
+================================================ -->
+<section class="hero" id="hero">
+  <div class="hero-bg"><canvas id="particleCanvas"></canvas></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-layout">
+      <div class="hero-copy">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          <span data-i18n="hero.badge">EDUCATIONAL · FULLY OPEN SOURCE</span>
+        </div>
+        <h1 class="hero-title" data-i18n="hero.title">
+          Bitcoin programmability,<br/>
+          <span class="gradient-text">proven by zero knowledge.</span>
+        </h1>
+        <p class="hero-sub" data-i18n="hero.sub">
+          HIMSHA runs programs inside a ZK prover. Every state transition ships with a
+          cryptographic receipt — not a validator vote. Build on Bitcoin with no bridges
+          and no trust assumptions. Every layer is fully open source.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="#get-started" data-i18n="hero.start">Start Building</a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            <span data-i18n="hero.source">View Source</span>
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><span class="stat-n accent">8</span><span class="stat-l" data-i18n="stats.programs">Programs</span></div>
+          <div class="stat"><span class="stat-n">3</span><span class="stat-l" data-i18n="stats.sdks">SDKs</span></div>
+          <div class="stat"><span class="stat-n">0</span><span class="stat-l" data-i18n="stats.bridges">Bridges</span></div>
+          <div class="stat"><span class="stat-n accent">ZK</span><span class="stat-l" data-i18n="stats.proven">Proven</span></div>
+        </div>
+      </div>
+
+      <!-- ZK receipt verification card -->
+      <div class="proof-card reveal">
+        <div class="proof-head">
+          <span class="proof-dots"><i></i><i></i><i></i></span>
+          <span class="proof-title">himsha-vm · receipt.json</span>
+          <span class="proof-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            VERIFIED
+          </span>
+        </div>
+        <div class="proof-scan" aria-hidden="true"></div>
+        <pre class="code-block proof-body"><code><span class="c">// execute program inside RISC Zero zkVM</span>
+<span class="k">let</span> receipt = default_prover()
+  .prove_elf(env, &amp;program.elf)?;
+
+<span class="c">// anyone can verify — no trusted party</span>
+receipt.verify(program.image_id)?;
+
+<span class="k">let</span> state = receipt.journal
+  .decode::&lt;AccountState&gt;()?;
+<span class="c">// → state committed to Bitcoin UTXO</span></code></pre>
+        <div class="proof-foot">
+          <span>image_id 0x9f4c…3a1b</span>
+          <span class="ok">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+            proof valid · 1.8s
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     DISCLAIMER BANNER
+================================================ -->
+<div class="disclaimer-banner">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <strong>Educational project only.</strong>
+  Not production-grade. Do not use with real mainnet Bitcoin funds without a thorough audit.
+</div>
+
+<!-- ================================================
+     COMPARISON
+================================================ -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Why HIMSHA</div>
+      <h2 class="section-title" data-i18n="why.title">Math, not majority vote</h2>
+      <p class="section-sub">
+        Traditional Bitcoin L2s rely on validators agreeing on what happened.
+        HIMSHA relies on cryptographic proof. If the proof verifies, the state is correct — period.
+      </p>
+    </div>
+
+    <div class="compare-table reveal">
+      <div class="compare-header">
+        <div></div>
+        <div class="compare-col him">HIMSHA Network</div>
+        <div class="compare-col other">eBPF-based L2s</div>
+        <div class="compare-col other">Bitcoin Rollups</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Correctness guarantee</div>
+        <div class="compare-val him"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ZK proof (math)</div>
+        <div class="compare-val other">Validator consensus</div>
+        <div class="compare-val other">Fraud-proof window</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Bridges required</div>
+        <div class="compare-val him"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>None</div>
+        <div class="compare-val other">None</div>
+        <div class="compare-val no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Required</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Program language</div>
+        <div class="compare-val him">Rust (RISC-V)</div>
+        <div class="compare-val other">Rust (eBPF)</div>
+        <div class="compare-val other">Varies</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Privacy possible</div>
+        <div class="compare-val him"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>ZK enables it</div>
+        <div class="compare-val no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Transparent</div>
+        <div class="compare-val other">Partial</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Validator honesty needed</div>
+        <div class="compare-val him"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Not for correctness</div>
+        <div class="compare-val no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Yes (&gt;50%)</div>
+        <div class="compare-val no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Yes</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     HOW IT WORKS
+================================================ -->
+<section class="section section-dark" id="how-it-works">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title" data-i18n="how.title">How HIMSHA works</h2>
+      <p class="section-sub">Four layers, each with a single clear responsibility.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-content">
+          <div class="step-num">STEP 01</div>
+          <h3>Client submits a transaction</h3>
+          <p>
+            A client builds a <code>RuntimeTransaction</code> — a list of signed instructions
+            targeting one or more HIMSHA programs. Signed with standard Bitcoin Schnorr keys.
+            No new wallet software needed.
+          </p>
+        </div>
+        <div class="step-code">
+          <pre><code class="code-block"><span class="c">// TypeScript SDK</span>
+<span class="k">const</span> tx = HimshaTransaction.create(
+  [signer],
+  [LendingProgram.initCollection(
+    collectionAccount, payer, <span class="s">"FrogNFTs"</span>
+  )]
+);
+<span class="k">await</span> conn.sendTransaction(tx);</code></pre>
+        </div>
+      </div>
+
+      <div class="step step-reverse reveal">
+        <div class="step-content">
+          <div class="step-num">STEP 02</div>
+          <h3>Node executes in a ZK prover</h3>
+          <p>
+            The HIMSHA node passes the transaction to the RISC Zero zkVM. The program runs
+            inside a sandboxed RISC-V environment. When it finishes, the prover emits a
+            cryptographic receipt proving the execution was correct.
+          </p>
+        </div>
+        <div class="step-code">
+          <pre><code class="code-block"><span class="c">// himsha-vm executor (Rust)</span>
+<span class="k">let</span> receipt = default_prover()
+  .prove_elf(env, &amp;prog.elf)?;
+
+receipt.verify(prog.image_id)?;
+<span class="c">// ↑ Anyone can verify this</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-content">
+          <div class="step-num">STEP 03</div>
+          <h3>State anchored to a Bitcoin UTXO</h3>
+          <p>
+            Updated account state is committed to a Bitcoin UTXO. Even if every HIMSHA
+            validator disappears, the state can be reconstructed from the Bitcoin chain.
+            Your assets stay on L1.
+          </p>
+        </div>
+        <div class="step-code">
+          <pre><code class="code-block"><span class="c">// Account anchored to Bitcoin</span>
+AccountInfo {
+  key:  Pubkey,
+  data: Vec&lt;u8&gt;,        <span class="c">// program state</span>
+  utxo: <span class="k">Some</span>(UtxoMeta {
+    txid: [u8; 32],     <span class="c">// Bitcoin txid</span>
+    vout: 0,
+  }),
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="step step-reverse reveal">
+        <div class="step-content">
+          <div class="step-num">STEP 04</div>
+          <h3>Bitcoin transaction broadcast</h3>
+          <p>
+            If the program produces a Bitcoin transaction (e.g. transferring an
+            inscription), the node signs and broadcasts it. The UTXO moves on L1.
+            No bridge. No wrapped tokens. Real Bitcoin.
+          </p>
+        </div>
+        <div class="step-code">
+          <pre><code class="code-block"><span class="c">// Bitcoin indexer (Rust)</span>
+<span class="k">let</span> txid = indexer
+  .broadcast(&amp;signed_tx_hex)?;
+
+<span class="c">// inscription moved on L1 ✓</span>
+println!(<span class="s">"confirmed: {txid}"</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     PROGRAMS
+================================================ -->
+<section class="section" id="programs">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Programs</div>
+      <h2 class="section-title" data-i18n="programs.title">Built-in programs</h2>
+      <p class="section-sub">
+        Each is a Rust crate that compiles to RISC-V and runs inside the ZK prover.
+        Deploy them as-is or fork them as a starting point.
+      </p>
+    </div>
+
+    <div class="programs-grid">
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div>
+        <h3>System Program</h3>
+        <p>Account creation, lamport transfer, ownership assignment, and data allocation.</p>
+        <div class="program-tags"><span class="tag">CreateAccount</span><span class="tag">Transfer</span><span class="tag">Assign</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/></svg></div>
+        <h3>Token Program</h3>
+        <p>Fungible tokens on Bitcoin. Full SPL-style interface: mint, transfer, burn, freeze, delegate.</p>
+        <div class="program-tags"><span class="tag">InitializeMint</span><span class="tag">MintTo</span><span class="tag">Burn</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+        <h3>ATA Program</h3>
+        <p>Deterministic per-user token accounts. One canonical address per (owner, mint) pair.</p>
+        <div class="program-tags"><span class="tag">Create ATA</span><span class="tag">Idempotent</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+        <h3>Swap Program</h3>
+        <p>Constant-product AMM (x·y=k). Deposit, withdraw, and swap with configurable fees.</p>
+        <div class="program-tags"><span class="tag">Initialize Pool</span><span class="tag">Swap</span><span class="tag">LP Tokens</span></div>
+      </div>
+
+      <div class="program-card featured reveal">
+        <div class="program-featured-badge">Featured</div>
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg></div>
+        <h3>Lending Program</h3>
+        <p>
+          Use Bitcoin Ordinal inscriptions as collateral. Borrow BTC from lenders.
+          Repay within the agreed period or the lender claims your inscription.
+          No oracles. No price feeds. Pure time-lock logic.
+        </p>
+        <div class="program-tags"><span class="tag">InitCollection</span><span class="tag">PlaceBid</span><span class="tag">AcceptBid</span><span class="tag">RepayLoan</span><span class="tag">ClaimDefault</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+        <h3>NFT Metadata</h3>
+        <p>On-chain name, symbol, URI, royalty basis points, and creator verification for tokens and inscriptions.</p>
+        <div class="program-tags"><span class="tag">Create</span><span class="tag">Update</span><span class="tag">Immutable</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6H4z"/><path d="M4 14h16v6H4z"/><path d="M8 7h.01"/><path d="M8 17h.01"/></svg></div>
+        <h3>Runes Program</h3>
+        <p>Bitcoin Runes fungible tokens. Etch, open-mint, transfer, and burn — native to Bitcoin.</p>
+        <div class="program-tags"><span class="tag">Etch</span><span class="tag">OpenMint</span><span class="tag">Transfer</span><span class="tag">Burn</span></div>
+      </div>
+
+      <div class="program-card reveal">
+        <div class="program-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg></div>
+        <h3>Money Market</h3>
+        <p>Over-collateralized borrowing: supply, borrow, repay, interest accrual, and liquidation.</p>
+        <div class="program-tags"><span class="tag">Supply</span><span class="tag">Borrow</span><span class="tag">Repay</span><span class="tag">Liquidate</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     WHAT YOU CAN BUILD
+================================================ -->
+<section class="section" id="use-cases">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title" data-i18n="usecases.title">What you can build</h2>
+      <p class="section-sub">
+        Compose the built-in programs into real applications — every one fully open source,
+        ZK-proven, and settled on Bitcoin L1. No bridges, no wrapped assets, no permission needed.
+      </p>
+    </div>
+
+    <div class="usecases-grid">
+      <div class="usecase-card wide reveal">
+        <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg></div>
+        <h3>Ordinals-collateralized lending</h3>
+        <p>
+          Let users borrow BTC against their Bitcoin inscriptions as collateral. Loans are
+          pure time-lock logic — repay before the deadline or the lender claims the inscription
+          on L1. No oracles, no price feeds, no liquidation bots required.
+        </p>
+        <div class="usecase-built">Built with<span class="tag">Lending</span><span class="tag">System</span></div>
+      </div>
+
+      <div class="usecase-card reveal">
+        <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+        <h3>On-chain DEX &amp; AMM</h3>
+        <p>Spin up constant-product liquidity pools and let anyone swap tokens or Runes with configurable fees and LP rewards.</p>
+        <div class="usecase-built">Built with<span class="tag">Swap</span><span class="tag">Token</span><span class="tag">ATA</span></div>
+      </div>
+
+      <div class="usecase-card reveal">
+        <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></div>
+        <h3>Token &amp; Runes launchpad</h3>
+        <p>Mint fungible tokens or etch Bitcoin Runes with on-chain metadata, fair open-mint logic, and creator royalties.</p>
+        <div class="usecase-built">Built with<span class="tag">Token</span><span class="tag">Runes</span><span class="tag">NFT Metadata</span></div>
+      </div>
+
+      <div class="usecase-card reveal">
+        <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg></div>
+        <h3>NFT marketplace with royalties</h3>
+        <p>Trade inscriptions and tokens with verifiable on-chain royalties and immutable metadata enforced by the prover.</p>
+        <div class="usecase-built">Built with<span class="tag">NFT Metadata</span><span class="tag">Token</span></div>
+      </div>
+
+      <div class="usecase-card reveal">
+        <div class="usecase-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+        <h3>Bitcoin money markets</h3>
+        <p>Run over-collateralized borrowing with supply, borrow, repay, automatic interest accrual, and on-chain liquidation.</p>
+        <div class="usecase-built">Built with<span class="tag">Money Market</span><span class="tag">Token</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     SDKS
+================================================ -->
+<section class="section section-dark" id="sdks">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">SDKs</div>
+      <h2 class="section-title" data-i18n="sdks.title">Build in your language</h2>
+      <p class="section-sub">
+        Three SDKs, one API surface. Ship a frontend, mobile app, or server
+        without learning a new paradigm.
+      </p>
+    </div>
+
+    <div class="reveal">
+      <div class="sdk-tabs" role="tablist" aria-label="SDK language">
+        <button class="sdk-tab active" data-tab="ts" role="tab" aria-selected="true">TypeScript</button>
+        <button class="sdk-tab" data-tab="python" role="tab" aria-selected="false">Python</button>
+        <button class="sdk-tab" data-tab="dart" role="tab" aria-selected="false">Dart</button>
+      </div>
+
+      <div class="sdk-panels">
+        <div class="sdk-panel active" id="panel-ts" role="tabpanel">
+          <pre><code class="code-block"><span class="c">// npm install @himsha-network/sdk</span>
+<span class="k">import</span> { HimshaConnection, LendingProgram, HimshaPublicKey } <span class="k">from</span> <span class="s">"@himsha-network/sdk"</span>;
+
+<span class="k">const</span> conn = <span class="k">new</span> HimshaConnection(<span class="s">"http://localhost:9100"</span>);
+<span class="k">const</span> collection = HimshaPublicKey.fromSeed(<span class="s">"my-nft-collection"</span>);
+
+<span class="c">// Initialize a lending market</span>
+<span class="k">const</span> tx = HimshaTransaction.create([payer], [
+  LendingProgram.initCollection(collection, payer.publicKey, <span class="s">"FrogNFTs"</span>),
+]);
+tx.addSignature(await wallet.sign(tx.messageHash()));
+
+<span class="k">const</span> txId = <span class="k">await</span> conn.sendTransaction(tx);
+console.log(<span class="s">`Collection created: ${txId}`</span>);</code></pre>
+        </div>
+
+        <div class="sdk-panel" id="panel-python" role="tabpanel">
+          <pre><code class="code-block"><span class="c"># pip install himsha-sdk</span>
+<span class="k">from</span> himsha_sdk <span class="k">import</span> HimshaConnection, HimshaPublicKey, HimshaTransaction
+<span class="k">from</span> himsha_sdk.programs <span class="k">import</span> lending
+
+<span class="k">async with</span> HimshaConnection(<span class="s">"http://localhost:9100"</span>) <span class="k">as</span> conn:
+    collection = HimshaPublicKey.from_seed(<span class="s">"my-nft-collection"</span>)
+
+    tx = HimshaTransaction.create(
+        signers=[payer],
+        instructions=[
+            lending.init_collection(collection, payer, <span class="s">"FrogNFTs"</span>)
+        ]
+    )
+    tx.add_signature(wallet.sign(tx.message_hash()))
+
+    tx_id = <span class="k">await</span> conn.send_transaction(tx)
+    print(<span class="s">f"Collection created: {tx_id}"</span>)</code></pre>
+        </div>
+
+        <div class="sdk-panel" id="panel-dart" role="tabpanel">
+          <pre><code class="code-block"><span class="c">// pubspec.yaml: himsha_sdk: ^0.1.0</span>
+<span class="k">import</span> <span class="s">'package:himsha_sdk/himsha_sdk.dart'</span>;
+
+<span class="k">final</span> conn = HimshaConnection(<span class="s">'http://localhost:9100'</span>);
+<span class="k">final</span> collection = HimshaPublicKey.fromSeed(<span class="s">'my-nft-collection'</span>);
+
+<span class="k">final</span> tx = HimshaTransaction.create(
+  [payer],
+  [LendingProgram.initCollection(collection, payer, <span class="s">'FrogNFTs'</span>)],
+);
+tx.addSignature(<span class="k">await</span> wallet.sign(tx.messageHash()));
+
+<span class="k">final</span> txId = <span class="k">await</span> conn.sendTransaction(tx);
+print(<span class="s">'Collection created: </span><span class="k">$txId</span><span class="s">'</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     GET STARTED
+================================================ -->
+<section class="section" id="get-started">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Quick Start</div>
+      <h2 class="section-title" data-i18n="start.title">Up and running in 3 steps</h2>
+    </div>
+
+    <div class="quickstart">
+      <div class="qs-step reveal">
+        <div class="qs-num">1</div>
+        <div class="qs-body">
+          <h3>Clone and build</h3>
+          <pre><code class="code-block">git clone https://github.com/your-org/himsha-network.git
+cd himsha-network
+cargo build --workspace</code></pre>
+        </div>
+      </div>
+
+      <div class="qs-step reveal">
+        <div class="qs-num">2</div>
+        <div class="qs-body">
+          <h3>Start the stack with Docker</h3>
+          <pre><code class="code-block">cd bitcoin-infra
+cp .env.example .env          # edit credentials
+mkdir -p data/{bitcoin,electrs,ord,him}
+docker compose up -d</code></pre>
+        </div>
+      </div>
+
+      <div class="qs-step reveal">
+        <div class="qs-num">3</div>
+        <div class="qs-body">
+          <h3>Check node status</h3>
+          <pre><code class="code-block">curl -X POST http://localhost:9100 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"himsha_isNodeReady","params":[]}'
+
+# {"jsonrpc":"2.0","result":true,"id":1}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     DOCS LINKS
+================================================ -->
+<section class="section section-dark" id="docs">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Documentation</div>
+      <h2 class="section-title" data-i18n="docs.title">Everything you need</h2>
+    </div>
+
+    <div class="docs-grid">
+      <a class="doc-card reveal" href="tutorials.html">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+        <h3>Tutorials</h3>
+        <p>Step-by-step guides for tokens, swaps, loans, NFT metadata, and the test suites.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      <a class="doc-card reveal" href="bitcoin-indexer-docker.html">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+        <h3>Docker Setup</h3>
+        <p>Run Bitcoin Core, Electrs, Ord, and the HIMSHA Node with a single Docker Compose command.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      <a class="doc-card reveal" href="bitcoin-indexer-k8s.html">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 20 7 20 17 12 22 4 17 4 7 12 2"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="20" y1="7" x2="14.5" y2="10.5"/><line x1="4" y1="7" x2="9.5" y2="10.5"/></svg></div>
+        <h3>Kubernetes &amp; Terraform</h3>
+        <p>Deploy to AWS EKS with full Terraform infrastructure and Kubernetes manifests.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      <a class="doc-card reveal" href="https://github.com/your-org/himsha-network/tree/main/himsha-sdk" target="_blank" rel="noopener">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+        <h3>TypeScript SDK</h3>
+        <p>Full API reference, examples, and test coverage for the JavaScript/TypeScript SDK.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+      </a>
+      <a class="doc-card reveal" href="https://github.com/your-org/himsha-network/tree/main/himsha-sdk-python" target="_blank" rel="noopener">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+        <h3>Python SDK</h3>
+        <p>Async-first Python SDK with full type hints and a pytest test suite.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+      </a>
+      <a class="doc-card reveal" href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">
+        <div class="doc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+        <h3>Rust Programs</h3>
+        <p>Source for all eight on-chain programs with full Rust unit-test coverage.</p>
+        <span class="doc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     FAQ  (AEO — mirrors FAQPage structured data)
+================================================ -->
+<section class="section section-dark" id="faq">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label" data-i18n="faq.label">FAQ</div>
+      <h2 class="section-title" data-i18n="faq.title">Frequently asked questions</h2>
+    </div>
+
+    <div class="faq-list reveal">
+      <details class="faq-item">
+        <summary>What is HIMSHA Network?</summary>
+        <div class="faq-answer"><p>HIMSHA (Hashable Instruction Machine) is a fully open-source, experimental Bitcoin programmability layer. Every state transition is proven correct by a RISC Zero zero-knowledge receipt rather than by validator majority vote. It is an educational proof of concept and is not production-grade.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>How is HIMSHA different from other Bitcoin L2s?</summary>
+        <div class="faq-answer"><p>Correctness comes from a ZK proof (math) instead of validator consensus or a fraud-proof window. HIMSHA requires no bridges, makes privacy possible, and does not depend on validator honesty for correctness.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Do I need a bridge or wrapped Bitcoin to use HIMSHA?</summary>
+        <div class="faq-answer"><p>No. Account state is anchored to Bitcoin UTXOs and real Bitcoin transactions are broadcast on Layer 1. There are no bridges and no wrapped tokens.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>What programs are built into HIMSHA?</summary>
+        <div class="faq-answer"><p>Eight programs ship in the box: System, Token, ATA, Swap (AMM), Lending against Ordinal inscriptions, NFT Metadata, Runes, and Money Market.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Which languages have an SDK?</summary>
+        <div class="faq-answer"><p>TypeScript, Python, and Dart — all sharing one API surface, so you can build a frontend, mobile app, or server.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Is HIMSHA production-ready?</summary>
+        <div class="faq-answer"><p>No. HIMSHA is an educational proof of concept. It is not audited and must not be used with real Bitcoin mainnet funds.</p></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     ASK A QUESTION  → GitHub Discussion / Issue
+================================================ -->
+<section class="section" id="ask">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">Community</div>
+      <h2 class="section-title" data-i18n="ask.title">Have a question?</h2>
+      <p class="section-sub">
+        Ask anything about HIMSHA and we'll answer in the open. Your question opens a new
+        GitHub Discussion (or issue) in the public, fully open-source repo — searchable for
+        everyone who comes after you.
+      </p>
+    </div>
+
+    <form class="ask-card reveal" id="askForm" data-repo="your-org/himsha-network" novalidate>
+      <div class="ask-field">
+        <label for="askTitle"><span data-i18n="ask.qLabel">Question</span> <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" id="askTitle" name="title" required maxlength="120"
+               placeholder="e.g. How do I anchor account state to a Bitcoin UTXO?" autocomplete="off" />
+        <p class="ask-help" id="askTitleHelp">A short, specific summary. Max 120 characters.</p>
+      </div>
+
+      <div class="ask-field">
+        <label for="askBody"><span data-i18n="ask.dLabel">Details</span> <span class="ask-optional">(optional)</span></label>
+        <textarea id="askBody" name="body" rows="5"
+                  placeholder="Add context — what you tried, what you expected, code snippets, your environment…"></textarea>
+        <p class="ask-help">Markdown supported. You'll review everything on GitHub before posting.</p>
+      </div>
+
+      <p class="ask-error" id="askError" role="alert" hidden>Please enter your question first.</p>
+
+      <div class="ask-actions">
+        <button type="submit" class="btn btn-primary btn-lg" id="askSubmit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          <span data-i18n="ask.discuss">Ask in Discussions</span>
+        </button>
+        <button type="button" class="btn btn-ghost btn-lg" id="askIssue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span data-i18n="ask.issue">Open as an issue</span>
+        </button>
+      </div>
+      <p class="ask-note">Opens GitHub in a new tab — a free GitHub account is required to post.</p>
+    </form>
+  </div>
+</section>
+
+<!-- ================================================
+     CTA
+================================================ -->
+<section class="section section-dark" id="cta">
+  <div class="container">
+    <div class="cta reveal">
+      <h2 data-i18n="cta.title">Start proving on Bitcoin</h2>
+      <p>Clone the fully open-source repo, spin up the stack, and ship your first ZK-proven program in minutes.</p>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="#get-started" data-i18n="cta.start">Get Started</a>
+        <a class="btn btn-ghost btn-lg" href="tutorials.html" data-i18n="cta.tutorials">Read the Tutorials</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================
+     FOOTER
+================================================ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="nav-logo" href="#" aria-label="HIMSHA Network home">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <defs><linearGradient id="footHimsha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7931A"/><stop offset="1" stop-color="#FFB347"/></linearGradient></defs>
+            <rect width="32" height="32" rx="7" fill="url(#footHimsha)"/>
+            <rect x="8.4" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+            <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+            <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+            <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+          </svg>
+          <span>HIMSHA Network</span>
+        </a>
+        <p>ZK-proven Bitcoin programmability. An educational, open-source project.</p>
+        <p class="footer-disclaimer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Not production-grade. Not audited. Use at your own risk.
+        </p>
+      </div>
+
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h4>Programs</h4>
+          <a href="#programs">System</a>
+          <a href="#programs">Token</a>
+          <a href="#programs">Swap (AMM)</a>
+          <a href="#programs">Lending</a>
+          <a href="#programs">Runes</a>
+          <a href="#programs">Money Market</a>
+        </div>
+        <div class="footer-col">
+          <h4>SDKs</h4>
+          <a href="#sdks">TypeScript</a>
+          <a href="#sdks">Python</a>
+          <a href="#sdks">Dart</a>
+        </div>
+        <div class="footer-col">
+          <h4>Infrastructure</h4>
+          <a href="bitcoin-indexer-docker.html">Docker Setup</a>
+          <a href="bitcoin-indexer-k8s.html">Kubernetes</a>
+          <a href="bitcoin-indexer-k8s.html">Terraform</a>
+        </div>
+        <div class="footer-col">
+          <h4>Links</h4>
+          <a href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">GitHub</a>
+          <a href="#ask">Ask a Question</a>
+          <a href="tutorials.html">Tutorials</a>
+          <a href="https://risc0.com" target="_blank" rel="noopener">RISC Zero ↗</a>
+          <a href="https://bitcoin.org" target="_blank" rel="noopener">Bitcoin ↗</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 HIMSHA Network · Educational use only</span>
+      <span>Built with Bitcoin · Rust · RISC Zero</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/i18n.js"></script>
+</body>
+</html>

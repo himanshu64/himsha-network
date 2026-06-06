@@ -1,0 +1,9 @@
+[package]
+name    = "himsha-runes-program"
+version = "0.1.0"
+edition = "2021"
+description = "Bitcoin Runes fungible-token protocol for HIMSHA Network (etch / mint / transfer / burn)"
+
+[dependencies]
+himsha-runtime = { workspace = true }
+borsh       = { workspace = true }

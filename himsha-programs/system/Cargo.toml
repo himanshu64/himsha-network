@@ -1,0 +1,12 @@
+[package]
+name    = "himsha-system-program"
+version = "0.1.0"
+edition = "2021"
+description = "HIMSHA system program — creates accounts, transfers lamports, assigns ownership"
+
+[dependencies]
+himsha-runtime = { workspace = true }
+borsh       = { workspace = true }
+serde       = { workspace = true }
+thiserror   = { workspace = true }
+sha2        = { workspace = true }

@@ -1,0 +1,157 @@
+/* ================================================
+   Tutorials Layout
+================================================ */
+.tut-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  max-width: 1200px;
+  margin: 64px auto 0;
+  min-height: calc(100vh - 64px);
+}
+
+/* ---- Sidebar ---- */
+.tut-sidebar {
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  background: var(--bg);
+}
+.tut-sidebar-inner { padding: 28px 16px; }
+.tut-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-muted);
+  margin: 20px 8px 8px; display: block;
+}
+.tut-section-label:first-child { margin-top: 0; }
+.tut-nav-link {
+  display: block; padding: 7px 12px; border-radius: 6px;
+  font-size: 13px; font-weight: 500; color: var(--text-muted);
+  text-decoration: none; transition: var(--transition); margin-bottom: 2px;
+}
+.tut-nav-link:hover { color: var(--text); background: var(--bg-3); }
+.tut-nav-link.active { color: var(--orange); background: var(--orange-dim); }
+
+/* ---- Content ---- */
+.tut-content {
+  padding: 48px 64px;
+  max-width: 860px;
+}
+
+.tut-hero {
+  margin-bottom: 56px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.tut-hero h1 {
+  font-family: var(--font-display);
+  font-size: 38px; font-weight: 800; letter-spacing: 0;
+  margin-bottom: 12px;
+}
+.tut-hero p { font-size: 17px; color: var(--text-muted); }
+
+/* ---- Tutorial sections ---- */
+.tut-section {
+  padding: 56px 0;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 80px;
+}
+.tut-section:last-child { border-bottom: none; }
+
+.tut-section h2 {
+  font-family: var(--font-display);
+  font-size: 26px; font-weight: 700; margin-bottom: 14px;
+  letter-spacing: 0;
+}
+.tut-section > p {
+  font-size: 15px; color: var(--text-muted);
+  line-height: 1.7; margin-bottom: 24px;
+}
+
+/* ---- Step boxes ---- */
+.step-box {
+  display: grid; grid-template-columns: 40px 1fr;
+  gap: 16px; align-items: start;
+  margin-bottom: 24px;
+}
+.step-box-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--orange); color: #000;
+  font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.step-box > div > strong { display: block; margin-bottom: 10px; font-size: 14px; }
+.step-box .code-block {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+
+/* ---- Info boxes ---- */
+.info-box {
+  background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.25);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  font-size: 14px; line-height: 1.7;
+  margin: 20px 0;
+  color: #93c5fd;
+}
+.info-box strong { color: #60a5fa; display: block; margin-bottom: 4px; }
+.info-box ol { padding-left: 20px; margin-top: 8px; }
+.info-box li { margin-bottom: 4px; }
+.info-box.warning {
+  background: rgba(239,68,68,.08);
+  border-color: rgba(239,68,68,.25);
+  color: #fca5a5;
+}
+.info-box.warning strong { color: var(--red); }
+
+/* ---- Code blocks in tutorials ---- */
+.tut-section pre { margin: 20px 0; }
+.tut-section .code-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Tabs (multi-language) ---- */
+.tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.tab {
+  padding: 10px 20px; background: none; border: none;
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: var(--transition); margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+.tab-panel {
+  display: none;
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow: hidden;
+}
+.tab-panel.active { display: block; }
+.tab-panel .code-block { border: none; }
+
+/* ---- Info table ---- */
+.info-table {
+  width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;
+}
+.info-table th, .info-table td {
+  padding: 10px 16px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.info-table th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.info-table td:first-child { font-family: var(--font-mono); color: var(--orange); }
+.info-table td:last-child { color: var(--green); font-weight: 600; }
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .tut-layout { grid-template-columns: 1fr; }
+  .tut-sidebar { display: none; }
+  .tut-content { padding: 32px 24px; max-width: 100%; }
+}

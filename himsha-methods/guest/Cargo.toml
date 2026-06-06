@@ -1,0 +1,24 @@
+[package]
+name    = "himsha-guest"
+version = "0.1.0"
+edition = "2021"
+
+# Detached workspace: this crate is compiled to a RISC-V ELF by risc0-build,
+# not as part of the main HIMSHA workspace.
+[workspace]
+
+[dependencies]
+# std support is experimental in risc0 but our programs use std (HashMap, String).
+risc0-zkvm = { version = "0.19.1", default-features = false, features = ["std"] }
+
+himsha-runtime              = { path = "../../himsha-runtime" }
+himsha-system-program       = { path = "../../himsha-programs/system" }
+himsha-token-program        = { path = "../../himsha-programs/token" }
+himsha-ata-program          = { path = "../../himsha-programs/ata" }
+himsha-swap-program         = { path = "../../himsha-programs/swap" }
+himsha-lending-program      = { path = "../../himsha-programs/lending" }
+himsha-nft-metadata-program = { path = "../../himsha-programs/nft-metadata" }
+himsha-runes-program        = { path = "../../himsha-programs/runes" }
+himsha-money-market-program = { path = "../../himsha-programs/money-market" }
+himsha-vault-program        = { path = "../../himsha-programs/vault" }
+himsha-oracle-program       = { path = "../../himsha-programs/oracle" }

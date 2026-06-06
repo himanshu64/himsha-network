@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Bitcoin Indexer + Ord — Complete Docker Setup Guide — HIMSHA Network documentation." />
+  <title>Bitcoin Indexer + Ord — Complete Docker Setup Guide — HIMSHA Network</title>
+  <link rel="canonical" href="https://your-org.github.io/himsha-network/bitcoin-indexer-docker.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="HIMSHA Network" />
+  <meta property="og:title" content="Bitcoin Indexer + Ord — Complete Docker Setup Guide — HIMSHA Network" />
+  <meta property="og:description" content="Bitcoin Indexer + Ord — Complete Docker Setup Guide — HIMSHA Network documentation." />
+  <meta property="og:url" content="https://your-org.github.io/himsha-network/bitcoin-indexer-docker.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16.png" />
+  <link rel="shortcut icon" href="assets/img/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
+  <meta name="theme-color" content="#F7931A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/docs.css" />
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html" aria-label="HIMSHA Network home">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="navHimsha" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7931A"/><stop offset="1" stop-color="#FFB347"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#navHimsha)"/>
+        <rect x="8.4" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="20.3" y="8" width="3.3" height="16" rx="1.3" fill="#0a0a0b"/>
+        <rect x="8.4" y="13.2" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+        <rect x="8.4" y="17.1" width="15.2" height="2.5" rx="1" fill="#0a0a0b"/>
+      </svg>
+      <span>HIMSHA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#features">Why HIMSHA</a></li>
+      <li><a href="index.html#how-it-works">How It Works</a></li>
+      <li><a href="index.html#programs">Programs</a></li>
+      <li><a href="index.html#use-cases">Use Cases</a></li>
+      <li><a href="index.html#sdks">SDKs</a></li>
+      <li><a href="tutorials.html">Tutorials</a></li>
+      <li><a href="index.html#docs">Docs</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/your-org/himsha-network" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html#features" class="mobile-link">Why HIMSHA</a>
+  <a href="index.html#how-it-works" class="mobile-link">How It Works</a>
+  <a href="index.html#programs" class="mobile-link">Programs</a>
+  <a href="index.html#use-cases" class="mobile-link">Use Cases</a>
+  <a href="index.html#sdks" class="mobile-link">SDKs</a>
+  <a href="tutorials.html" class="mobile-link">Tutorials</a>
+  <a href="index.html#docs" class="mobile-link">Docs</a>
+  <a href="https://github.com/your-org/himsha-network" class="mobile-link" target="_blank" rel="noopener">GitHub &#8599;</a>
+</div>
+
+<button class="doc-toc-toggle" id="tocToggle" aria-expanded="false">
+  <span>On this page</span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<main class="doc-layout">
+  <aside class="doc-sidebar" id="docSidebar">
+    <a class="doc-back" href="index.html#docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to docs</a>
+    <div class="doc-sidebar-head">On this page</div>
+    <nav aria-label="Table of contents">
+      <a class="doc-toc-link" href="#overview">Overview</a>
+      <a class="doc-toc-link" href="#system-requirements">System Requirements</a>
+      <a class="doc-toc-link" href="#project-layout">Project Layout</a>
+      <a class="doc-toc-link" href="#step-1-environment-file">Step 1 — Environment File</a>
+      <a class="doc-toc-link" href="#step-2-bitcoin-core-configuration">Step 2 — Bitcoin Core Configuration</a>
+      <a class="doc-toc-link" href="#step-3-electrs-configuration">Step 3 — Electrs Configuration</a>
+      <a class="doc-toc-link" href="#step-4-ord-configuration">Step 4 — Ord Configuration</a>
+      <a class="doc-toc-link" href="#step-5-docker-compose">Step 5 — Docker Compose</a>
+      <a class="doc-toc-link" href="#step-6-dockerfile-himsha-node">Step 6 — Dockerfile (HIMSHA Node)</a>
+      <a class="doc-toc-link" href="#step-7-helper-scripts">Step 7 — Helper Scripts</a>
+      <a class="doc-toc-link" href="#step-8-start-the-stack">Step 8 — Start the Stack</a>
+      <a class="doc-toc-link" href="#step-9-verify-each-service">Step 9 — Verify Each Service</a>
+      <a class="doc-toc-link" href="#step-10-network-specific-config">Step 10 — Network-Specific Config</a>
+      <a class="doc-toc-link" href="#troubleshooting">Troubleshooting</a>
+      <a class="doc-toc-link" href="#docker-compose-reference">Docker Compose Reference</a>
+    </nav>
+  </aside>
+
+  <div class="doc-content">
+    <article class="doc-prose">
+      <div class="doc-eyebrow">Infrastructure · Docker</div>
+<h1 id="bitcoin-indexer-ord-complete-docker-setup-guide">Bitcoin Indexer + Ord — Complete Docker Setup Guide</h1>
+<blockquote>
+<p>⚠️ <strong>Disclaimer</strong>: This guide is for educational and development purposes only.
+Do not expose RPC credentials publicly. Never run with real mainnet funds without
+a thorough security review.</p>
+</blockquote>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>This guide sets up a complete Bitcoin data stack using Docker Compose:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Role</th>
+<th>Image</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bitcoin Core</strong></td>
+<td>Full Bitcoin node, transaction index</td>
+<td><code>ruimarinho/bitcoin-core:24</code></td>
+</tr>
+<tr>
+<td><strong>Electrs</strong></td>
+<td>Fast UTXO indexer (Electrum protocol)</td>
+<td><code>getumbrel/electrs:v0.10.2</code></td>
+</tr>
+<tr>
+<td><strong>Ord</strong></td>
+<td>Ordinals / inscription indexer</td>
+<td><code>ordinals/ord:latest</code></td>
+</tr>
+<tr>
+<td><strong>HIMSHA Node</strong></td>
+<td>ZK-proven Bitcoin programmability layer</td>
+<td>(built locally)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="system-requirements">System Requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Network</th>
+<th>CPU</th>
+<th>RAM</th>
+<th>Disk</th>
+<th>Time to sync</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Regtest</td>
+<td>2 cores</td>
+<td>2 GB</td>
+<td>5 GB</td>
+<td>Instant</td>
+</tr>
+<tr>
+<td>Testnet4</td>
+<td>4 cores</td>
+<td>4 GB</td>
+<td>100 GB</td>
+<td>2–4 hours</td>
+</tr>
+<tr>
+<td>Mainnet</td>
+<td>8 cores</td>
+<td>16 GB</td>
+<td>700 GB SSD</td>
+<td>2–5 days</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="project-layout">Project Layout</h2>
+<pre><code>bitcoin-infra/
+├── docker-compose.yml           # Main orchestration file
+├── docker-compose.override.yml  # Local dev overrides (not committed)
+├── .env                         # Environment variables (not committed)
+├── config/
+│   ├── bitcoin/
+│   │   └── bitcoin.conf         # Bitcoin Core config
+│   ├── electrs/
+│   │   └── config.toml          # Electrs config
+│   └── ord/
+│       └── ord.toml             # Ord config
+├── scripts/
+│   ├── init-regtest.sh          # Fund regtest wallet on first start
+│   ├── healthcheck.sh           # Composite health check
+│   └── backup.sh                # Data backup helper
+└── data/                        # Volume mount point (gitignored)
+    ├── bitcoin/
+    ├── electrs/
+    ├── ord/
+    └── him/
+</code></pre>
+<hr />
+<h2 id="step-1-environment-file">Step 1 — Environment File</h2>
+<p>Create <code>.env</code> in the project root. <strong>Never commit this file.</strong></p>
+<pre><code class="language-bash"># .env
+BITCOIN_NETWORK=regtest          # regtest | testnet | mainnet
+
+# RPC credentials — change before any real use
+BITCOIN_RPC_USER=himuser
+BITCOIN_RPC_PASS=change_me_before_use_29aX
+
+# Ports exposed on host
+BITCOIN_RPC_PORT=18443           # 18332 testnet, 8332 mainnet
+BITCOIN_P2P_PORT=18444           # 18333 testnet, 8333 mainnet
+ELECTRS_PORT=50001
+ORD_PORT=8080
+HIMSHA_NODE_PORT=9100
+
+# Mempool.space URL for inscription queries (optional)
+MEMPOOL_SPACE_URL=https://mempool.space/testnet
+
+# HIMSHA node database path inside container
+HIMSHA_DB=/data/him.redb
+</code></pre>
+<hr />
+<h2 id="step-2-bitcoin-core-configuration">Step 2 — Bitcoin Core Configuration</h2>
+<h3 id="configbitcoinbitcoinconf"><code>config/bitcoin/bitcoin.conf</code></h3>
+<pre><code class="language-ini"># =========================================================
+# Bitcoin Core Configuration
+# =========================================================
+
+# --- Network ---
+# Uncomment exactly ONE of the following:
+regtest=1
+#testnet=1
+#mainnet=1     (remove the line entirely for mainnet)
+
+# --- RPC Server ---
+server=1
+rpcbind=0.0.0.0
+rpcallowip=0.0.0.0/0            # Restrict to 10.0.0.0/8 in production
+
+# Credentials are injected via environment variables in docker-compose
+# rpcuser and rpcpassword are set via -rpcuser / -rpcpassword CLI flags
+
+# --- Indexing ---
+txindex=1                        # Full transaction index (required by Ord + Electrs)
+blockfilterindex=1               # BIP157 compact filters
+coinstatsindex=1                 # UTXO statistics
+
+# --- ZMQ (real-time notifications to HIMSHA node) ---
+zmqpubrawblock=tcp://0.0.0.0:28332
+zmqpubrawtx=tcp://0.0.0.0:28333
+zmqpubhashblock=tcp://0.0.0.0:28334
+zmqpubhashtx=tcp://0.0.0.0:28335
+
+# --- Performance ---
+dbcache=512                      # MB of RAM for UTXO cache (increase for mainnet: 4096+)
+maxmempool=300                   # MB
+maxconnections=40
+par=4                            # Script validation threads
+
+# --- Logging ---
+debug=rpc
+debug=zmq
+logips=0                         # Don't log peer IPs in production
+</code></pre>
+<hr />
+<h2 id="step-3-electrs-configuration">Step 3 — Electrs Configuration</h2>
+<h3 id="configelectrsconfigtoml"><code>config/electrs/config.toml</code></h3>
+<pre><code class="language-toml"># =========================================================
+# Electrs Configuration
+# Fast UTXO indexer implementing the Electrum server protocol
+# =========================================================
+
+# --- Network (must match bitcoin.conf) ---
+network = &quot;regtest&quot;              # regtest | testnet | mainnet
+
+# --- Bitcoin Core connection ---
+daemon_rpc_addr = &quot;bitcoin:18443&quot;   # host:port — use 18332/8332 for testnet/mainnet
+daemon_dir = &quot;/bitcoin-data&quot;
+auth = &quot;himuser:change_me_before_use_29aX&quot;
+
+# --- Electrs storage ---
+db_dir = &quot;/electrs-data&quot;
+
+# --- Listen addresses ---
+electrum_rpc_addr = &quot;0.0.0.0:50001&quot;  # Electrum protocol
+http_addr = &quot;0.0.0.0:3002&quot;           # REST HTTP API
+
+# --- Monitoring ---
+monitoring_addr = &quot;0.0.0.0:4224&quot;     # Prometheus metrics endpoint
+
+# --- Sync behavior ---
+wait_duration_secs = 5               # Poll Bitcoin Core every N seconds
+index_batch_size = 10                # Blocks per indexing batch
+bulk_index_threads = 4               # Parallel index threads
+</code></pre>
+<hr />
+<h2 id="step-4-ord-configuration">Step 4 — Ord Configuration</h2>
+<p>Ord is configured primarily via command-line arguments. We also provide <code>config/ord/ord.toml</code>:</p>
+<pre><code class="language-toml"># =========================================================
+# Ord Configuration
+# Ordinals / inscription indexer
+# =========================================================
+
+bitcoin_rpc_url = &quot;http://bitcoin:18443&quot;
+bitcoin_rpc_username = &quot;himuser&quot;
+bitcoin_rpc_password = &quot;change_me_before_use_29aX&quot;
+
+data_dir = &quot;/ord-data&quot;
+
+# Network (regtest | testnet | mainnet)
+# Passed via CLI flag --regtest / --testnet
+
+# Inscription content serving
+serve_contents = true
+
+# Allow larger inscriptions (useful for development)
+max_recoverable_inscription_number = 0
+</code></pre>
+<hr />
+<h2 id="step-5-docker-compose">Step 5 — Docker Compose</h2>
+<h3 id="docker-composeyml"><code>docker-compose.yml</code></h3>
+<pre><code class="language-yaml">version: &quot;3.9&quot;
+
+# =========================================================
+# Bitcoin + Electrs + Ord + HIMSHA Node — Docker Compose
+# =========================================================
+
+networks:
+  bitcoin-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  bitcoin-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data/bitcoin
+  electrs-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data/electrs
+  ord-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data/ord
+  himsha-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data/him
+
+services:
+
+  # ==========================================================
+  # Bitcoin Core
+  # ==========================================================
+  bitcoin:
+    image: ruimarinho/bitcoin-core:24
+    container_name: bitcoin-core
+    restart: unless-stopped
+    networks:
+      bitcoin-net:
+        ipv4_address: 172.20.0.10
+    ports:
+      - &quot;${BITCOIN_RPC_PORT:-18443}:18443&quot;     # RPC (change port for testnet/mainnet)
+      - &quot;${BITCOIN_P2P_PORT:-18444}:18444&quot;     # P2P
+      - &quot;28332:28332&quot;                           # ZMQ blocks
+      - &quot;28333:28333&quot;                           # ZMQ txs
+    volumes:
+      - bitcoin-data:/home/bitcoin/.bitcoin
+      - ./config/bitcoin/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
+    command: &gt;
+      bitcoind
+      -conf=/home/bitcoin/.bitcoin/bitcoin.conf
+      -datadir=/home/bitcoin/.bitcoin
+      -rpcuser=${BITCOIN_RPC_USER}
+      -rpcpassword=${BITCOIN_RPC_PASS}
+      -rpcport=18443
+    environment:
+      BITCOIN_RPC_USER: ${BITCOIN_RPC_USER}
+      BITCOIN_RPC_PASS: ${BITCOIN_RPC_PASS}
+    healthcheck:
+      test:
+        - CMD
+        - bitcoin-cli
+        - -regtest
+        - -rpcuser=${BITCOIN_RPC_USER}
+        - -rpcpassword=${BITCOIN_RPC_PASS}
+        - -rpcport=18443
+        - getblockchaininfo
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    logging:
+      driver: &quot;json-file&quot;
+      options:
+        max-size: &quot;50m&quot;
+        max-file: &quot;5&quot;
+
+  # ==========================================================
+  # Electrs — UTXO Indexer
+  # ==========================================================
+  electrs:
+    image: getumbrel/electrs:v0.10.2
+    container_name: electrs
+    restart: unless-stopped
+    networks:
+      bitcoin-net:
+        ipv4_address: 172.20.0.11
+    ports:
+      - &quot;${ELECTRS_PORT:-50001}:50001&quot;          # Electrum RPC
+      - &quot;3002:3002&quot;                              # HTTP REST API
+      - &quot;4224:4224&quot;                              # Prometheus metrics
+    volumes:
+      - electrs-data:/electrs-data
+      - bitcoin-data:/bitcoin-data:ro            # Reads Bitcoin blocks directly
+      - ./config/electrs/config.toml:/etc/electrs/config.toml:ro
+    command: electrs --conf /etc/electrs/config.toml
+    depends_on:
+      bitcoin:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -sf
+        - http://localhost:3002/blocks/tip/height
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    logging:
+      driver: &quot;json-file&quot;
+      options:
+        max-size: &quot;50m&quot;
+        max-file: &quot;5&quot;
+
+  # ==========================================================
+  # Ord — Ordinals / Inscription Indexer
+  # ==========================================================
+  ord:
+    image: ordinals/ord:latest
+    container_name: ord
+    restart: unless-stopped
+    networks:
+      bitcoin-net:
+        ipv4_address: 172.20.0.12
+    ports:
+      - &quot;${ORD_PORT:-8080}:8080&quot;
+    volumes:
+      - ord-data:/ord-data
+      - bitcoin-data:/bitcoin-data:ro
+    command: &gt;
+      ord
+      --regtest
+      --bitcoin-rpc-url http://bitcoin:18443
+      --bitcoin-rpc-username ${BITCOIN_RPC_USER}
+      --bitcoin-rpc-password ${BITCOIN_RPC_PASS}
+      --data-dir /ord-data
+      server
+      --http-port 8080
+    depends_on:
+      bitcoin:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -sf
+        - http://localhost:8080/status
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    logging:
+      driver: &quot;json-file&quot;
+      options:
+        max-size: &quot;50m&quot;
+        max-file: &quot;5&quot;
+
+  # ==========================================================
+  # HIMSHA Node
+  # ==========================================================
+  himsha-node:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: himsha-node
+    restart: unless-stopped
+    networks:
+      bitcoin-net:
+        ipv4_address: 172.20.0.13
+    ports:
+      - &quot;${HIMSHA_NODE_PORT:-9100}:9100&quot;
+    volumes:
+      - himsha-data:/data
+    environment:
+      HIMSHA_DB: ${HIMSHA_DB:-/data/him.redb}
+      BITCOIN_RPC_URL: &quot;http://bitcoin:18443&quot;
+      BITCOIN_RPC_USER: ${BITCOIN_RPC_USER}
+      BITCOIN_RPC_PASS: ${BITCOIN_RPC_PASS}
+      ELECTRS_URL: &quot;http://electrs:3002&quot;
+      ORD_URL: &quot;http://ord:8080&quot;
+      MEMPOOL_SPACE_URL: ${MEMPOOL_SPACE_URL:-}
+      RUST_LOG: &quot;himsha_node=info,warn&quot;
+    depends_on:
+      electrs:
+        condition: service_healthy
+      ord:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -sf
+        - -X POST
+        - http://localhost:9100
+        - -H &quot;Content-Type: application/json&quot;
+        - -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_isNodeReady&quot;,&quot;params&quot;:[]}'
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: &quot;json-file&quot;
+      options:
+        max-size: &quot;50m&quot;
+        max-file: &quot;5&quot;
+</code></pre>
+<hr />
+<h2 id="step-6-dockerfile-himsha-node">Step 6 — Dockerfile (HIMSHA Node)</h2>
+<p>Place this in the project root (<code>../Dockerfile</code> relative to <code>bitcoin-infra/</code>):</p>
+<pre><code class="language-dockerfile"># =========================================================
+# HIMSHA Node — Multi-stage Dockerfile
+# =========================================================
+
+# --- Stage 1: RISC Zero + Rust builder ---
+FROM rust:1.75-slim-bookworm AS builder
+
+WORKDIR /build
+
+# System dependencies
+RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev clang lld cmake git curl \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Install RISC Zero toolchain
+RUN cargo install cargo-risczero \
+    &amp;&amp; cargo risczero install
+
+# Cache dependencies separately from source
+COPY Cargo.toml Cargo.lock ./
+COPY himsha-runtime/Cargo.toml    himsha-runtime/
+COPY himsha-vm/Cargo.toml         himsha-vm/
+COPY himsha-node/Cargo.toml       himsha-node/
+COPY himsha-programs/system/Cargo.toml    himsha-programs/system/
+COPY himsha-programs/token/Cargo.toml     himsha-programs/token/
+COPY himsha-programs/ata/Cargo.toml       himsha-programs/ata/
+COPY himsha-programs/swap/Cargo.toml      himsha-programs/swap/
+COPY himsha-programs/lending/Cargo.toml   himsha-programs/lending/
+COPY himsha-programs/nft-metadata/Cargo.toml himsha-programs/nft-metadata/
+COPY himsha-cli/Cargo.toml        himsha-cli/
+
+# Dummy source to cache dependencies
+RUN mkdir -p himsha-runtime/src &amp;&amp; echo &quot;pub fn main(){}&quot; &gt; himsha-runtime/src/lib.rs \
+    &amp;&amp; mkdir -p himsha-node/src   &amp;&amp; echo &quot;fn main(){}&quot;   &gt; himsha-node/src/main.rs \
+    &amp;&amp; cargo build --release -p himsha-node 2&gt;/dev/null; true
+
+# Copy actual source
+COPY himsha-runtime/src   himsha-runtime/src
+COPY himsha-vm/src        himsha-vm/src
+COPY himsha-node/src      himsha-node/src
+COPY himsha-programs      himsha-programs
+COPY himsha-cli/src       himsha-cli/src
+
+# Build release binary
+RUN cargo build --release -p himsha-node
+
+# --- Stage 2: Minimal runtime image ---
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -r -u 1001 -s /sbin/nologin himuser
+USER himuser
+
+COPY --from=builder /build/target/release/himsha-node /usr/local/bin/himsha-node
+
+VOLUME [&quot;/data&quot;]
+EXPOSE 9100
+
+ENTRYPOINT [&quot;himsha-node&quot;]
+</code></pre>
+<hr />
+<h2 id="step-7-helper-scripts">Step 7 — Helper Scripts</h2>
+<h3 id="scriptsinit-regtestsh-fund-the-regtest-wallet"><code>scripts/init-regtest.sh</code> — Fund the regtest wallet</h3>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Run once after starting regtest to create and fund a wallet.
+set -euo pipefail
+
+RPC=&quot;docker compose exec bitcoin bitcoin-cli -regtest \
+  -rpcuser=${BITCOIN_RPC_USER} -rpcpassword=${BITCOIN_RPC_PASS}&quot;
+
+echo &quot;Creating wallet...&quot;
+$RPC createwallet &quot;main&quot; || $RPC loadwallet &quot;main&quot;
+
+ADDRESS=$($RPC getnewaddress)
+echo &quot;Mining 101 blocks to: $ADDRESS&quot;
+$RPC generatetoaddress 101 &quot;$ADDRESS&quot;
+
+BALANCE=$($RPC getbalance)
+echo &quot;Wallet balance: $BALANCE BTC&quot;
+echo &quot;Regtest ready.&quot;
+</code></pre>
+<h3 id="scriptshealthchecksh-composite-health-check"><code>scripts/healthcheck.sh</code> — Composite health check</h3>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Check all services are healthy. Exit 0 = all good, 1 = something wrong.
+set -euo pipefail
+
+OK=&quot;\033[0;32m✓\033[0m&quot;
+FAIL=&quot;\033[0;31m✗\033[0m&quot;
+all_ok=true
+
+check() {
+  local name=&quot;$1&quot;; local cmd=&quot;$2&quot;
+  if eval &quot;$cmd&quot; &amp;&gt;/dev/null; then
+    echo -e &quot;$OK $name&quot;
+  else
+    echo -e &quot;$FAIL $name&quot;
+    all_ok=false
+  fi
+}
+
+check &quot;Bitcoin Core&quot; \
+  &quot;docker compose exec bitcoin bitcoin-cli -regtest \
+    -rpcuser=${BITCOIN_RPC_USER} -rpcpassword=${BITCOIN_RPC_PASS} \
+    getblockchaininfo&quot;
+
+check &quot;Electrs HTTP&quot; \
+  &quot;curl -sf http://localhost:3002/blocks/tip/height&quot;
+
+check &quot;Ord API&quot; \
+  &quot;curl -sf http://localhost:8080/status&quot;
+
+check &quot;HIMSHA Node&quot; \
+  &quot;curl -sf -X POST http://localhost:9100 \
+    -H 'Content-Type: application/json' \
+    -d '{\&quot;jsonrpc\&quot;:\&quot;2.0\&quot;,\&quot;id\&quot;:1,\&quot;method\&quot;:\&quot;himsha_isNodeReady\&quot;,\&quot;params\&quot;:[]}'&quot;
+
+$all_ok &amp;&amp; echo -e &quot;\nAll services healthy.&quot; || { echo -e &quot;\nSome services unhealthy!&quot;; exit 1; }
+</code></pre>
+<h3 id="scriptsbackupsh-data-backup"><code>scripts/backup.sh</code> — Data backup</h3>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Backup all data volumes to ./backup/
+set -euo pipefail
+
+BACKUP_DIR=&quot;./backup/$(date +%Y%m%d-%H%M%S)&quot;
+mkdir -p &quot;$BACKUP_DIR&quot;
+
+echo &quot;Stopping HIMSHA node before backup...&quot;
+docker compose stop himsha-node
+
+for vol in bitcoin electrs ord him; do
+  echo &quot;Backing up $vol data...&quot;
+  docker run --rm \
+    -v &quot;bitcoin-infra_${vol}-data:/source:ro&quot; \
+    -v &quot;$BACKUP_DIR:/backup&quot; \
+    alpine tar czf &quot;/backup/${vol}.tar.gz&quot; -C /source .
+  echo &quot;  → $BACKUP_DIR/${vol}.tar.gz&quot;
+done
+
+docker compose start himsha-node
+echo &quot;Backup complete: $BACKUP_DIR&quot;
+</code></pre>
+<hr />
+<h2 id="step-8-start-the-stack">Step 8 — Start the Stack</h2>
+<pre><code class="language-bash"># Create data directories
+mkdir -p data/bitcoin data/electrs data/ord data/him
+
+# Start all services
+docker compose up -d
+
+# Watch startup
+docker compose logs -f
+
+# Check status
+docker compose ps
+
+# Run composite health check
+bash scripts/healthcheck.sh
+
+# For regtest: fund the wallet
+bash scripts/init-regtest.sh
+</code></pre>
+<hr />
+<h2 id="step-9-verify-each-service">Step 9 — Verify Each Service</h2>
+<pre><code class="language-bash"># --- Bitcoin Core ---
+# Get blockchain info
+curl -s -u &quot;${BITCOIN_RPC_USER}:${BITCOIN_RPC_PASS}&quot; \
+  -X POST http://localhost:18443 \
+  -H &quot;Content-Type: text/plain&quot; \
+  -d '{&quot;method&quot;:&quot;getblockchaininfo&quot;,&quot;params&quot;:[],&quot;id&quot;:1}' | jq .
+
+# --- Electrs ---
+# Current indexed block height
+curl -s http://localhost:3002/blocks/tip/height
+
+# Get address UTXOs
+curl -s http://localhost:3002/address/bcrt1q.../utxo | jq .
+
+# --- Ord ---
+# Indexer status
+curl -s http://localhost:8080/status | jq .
+
+# List inscriptions
+curl -s http://localhost:8080/inscriptions | jq .
+
+# Look up a specific inscription
+curl -s &quot;http://localhost:8080/inscription/&lt;inscription_id&gt;&quot; | jq .
+
+# --- HIMSHA Node ---
+# Readiness check
+curl -s -X POST http://localhost:9100 \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_isNodeReady&quot;,&quot;params&quot;:[]}' | jq .
+
+# Current slot
+curl -s -X POST http://localhost:9100 \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_getSlot&quot;,&quot;params&quot;:[]}' | jq .
+
+# List deployed programs
+curl -s -X POST http://localhost:9100 \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;himsha_listPrograms&quot;,&quot;params&quot;:[]}' | jq .
+</code></pre>
+<hr />
+<h2 id="step-10-network-specific-config">Step 10 — Network-Specific Config</h2>
+<h3 id="switching-from-regtest-to-testnet">Switching from Regtest to Testnet</h3>
+<ol>
+<li>In <code>.env</code>: set <code>BITCOIN_NETWORK=testnet</code>, <code>BITCOIN_RPC_PORT=18332</code></li>
+<li>In <code>config/bitcoin/bitcoin.conf</code>: replace <code>regtest=1</code> with <code>testnet=1</code></li>
+<li>In <code>docker-compose.yml</code> Bitcoin command: replace <code>-regtest</code> with <code>-testnet</code></li>
+<li>In <code>config/electrs/config.toml</code>: set <code>network = "testnet"</code> and <code>daemon_rpc_addr = "bitcoin:18332"</code></li>
+<li>In Ord command: replace <code>--regtest</code> with <code>--testnet</code></li>
+</ol>
+<h3 id="mainnet-checklist">Mainnet Checklist</h3>
+<ul>
+<li>[ ] Minimum 700 GB SSD</li>
+<li>[ ] <code>dbcache=4096</code> in bitcoin.conf</li>
+<li>[ ] Remove <code>regtest=1</code>; use default Bitcoin port 8332</li>
+<li>[ ] Strong, unique RPC password (32+ chars)</li>
+<li>[ ] Firewall: block ports 8332, 50001, 8080, 9100 from the internet</li>
+<li>[ ] Use a reverse proxy (nginx/caddy) with TLS for any exposed endpoints</li>
+</ul>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bitcoin-cli: Connection refused</code></td>
+<td>Bitcoin not started</td>
+<td>Check <code>docker compose logs bitcoin</code></td>
+</tr>
+<tr>
+<td>Electrs stuck at block 0</td>
+<td>Bitcoin not fully synced</td>
+<td>Wait for Bitcoin sync to complete</td>
+</tr>
+<tr>
+<td>Ord shows 0 inscriptions</td>
+<td>Ord index not built</td>
+<td>Wait; mainnet index takes hours</td>
+</tr>
+<tr>
+<td>HIMSHA node not ready</td>
+<td>Electrs/Ord not healthy</td>
+<td>Check <code>docker compose ps</code></td>
+</tr>
+<tr>
+<td>Out of disk</td>
+<td>Volume full</td>
+<td>Add storage or prune old data</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Tail a specific service log
+docker compose logs -f bitcoin
+docker compose logs -f --tail=100 electrs
+
+# Restart one service without stopping others
+docker compose restart electrs
+
+# Check resource usage
+docker stats
+
+# Remove stopped containers + unused volumes (careful!)
+docker system prune -f
+</code></pre>
+<hr />
+<h2 id="docker-compose-reference">Docker Compose Reference</h2>
+<pre><code class="language-bash">docker compose up -d              # Start all services detached
+docker compose down               # Stop and remove containers
+docker compose down -v            # Also delete volumes (DESTRUCTIVE)
+docker compose pull               # Pull latest images
+docker compose ps                 # Service status
+docker compose top                # Process list inside containers
+docker compose exec bitcoin bash  # Shell into Bitcoin container
+</code></pre>
+    </article>
+  </div>
+</main>
+
+<script src="assets/js/main.js"></script>
+<script src="assets/js/docs.js"></script>
+</body>
+</html>

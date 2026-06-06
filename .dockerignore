@@ -1,0 +1,23 @@
+# Keep the build context small and the image clean.
+target/
+**/target/
+.git/
+.github/
+.DS_Store
+**/.DS_Store
+
+# Not needed to build the node binary.
+website/
+docs/
+marketing/
+lending-borrowing/
+lendingandborrow/
+himsha-sdk-dart/
+himsha-sdk-python/
+# NOTE: himsha-methods is NOT excluded — himsha-vm has an optional path
+# dependency on it (zkvm feature), so cargo must read its manifest to resolve
+# the workspace graph even though we build without the feature.
+
+# Local docker state.
+data/
+.env

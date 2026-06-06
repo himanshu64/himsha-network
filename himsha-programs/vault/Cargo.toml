@@ -1,0 +1,11 @@
+[package]
+name    = "himsha-vault-program"
+version = "0.1.0"
+edition = "2021"
+description = "Automated yield vault for HIMSHA Network — ERC-4626-style shares, keeper-reported NAV, performance fees"
+
+[dependencies]
+himsha-runtime              = { workspace = true }
+himsha-token-program        = { path = "../token" }
+himsha-money-market-program = { path = "../money-market" }
+borsh                       = { workspace = true }
