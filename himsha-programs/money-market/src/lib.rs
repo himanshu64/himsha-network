@@ -144,11 +144,10 @@ pub fn ensure_fresh_price(market: &MarketState, now: u64) -> Result<(), ProgramE
 /// Current utilization in bps: `total_borrows / (total_borrows + total_cash)`.
 pub fn utilization_bps(market: &MarketState) -> u128 {
     let denom = market.total_borrows as u128 + market.total_cash as u128;
-    if denom == 0 {
-        0
-    } else {
-        (market.total_borrows as u128) * BPS / denom
-    }
+    // `checked_div` yields None when denom == 0 (an empty market) → 0% utilization.
+    ((market.total_borrows as u128) * BPS)
+        .checked_div(denom)
+        .unwrap_or(0)
 }
 
 /// Annual borrow rate in bps under the linear model: `base + slope * utilization`.
