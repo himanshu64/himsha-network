@@ -269,3 +269,31 @@ See [`docs/`](./docs/) for:
 - [AWS (EC2 / ECS Fargate)](./docs/deployment/aws.md)
 - [Google Cloud (Compute Engine / Cloud Run)](./docs/deployment/gcp.md)
 - [Azure (VM / Container Apps)](./docs/deployment/azure.md)
+
+---
+
+## Contributors
+
+Built and maintained by:
+
+<table>
+  <tr>
+    <td align="center" width="160">
+      <a href="https://github.com/himanshu64">
+        <img src="https://github.com/himanshu64.png" width="96" height="96" alt="himanshu64"/><br/>
+        <sub><b>himanshu64</b></sub>
+      </a><br/>
+      <sub>Creator &amp; maintainer</sub>
+    </td>
+  </tr>
+</table>
+
+HIMSHA is **fully open source** — contributions are welcome. Pick a
+[good first issue / roadmap item](https://github.com/himanshu64/himsha-network/milestone/1),
+read [`CONTRIBUTING.md`](./CONTRIBUTING.md), and open a PR.
+
+<a href="https://github.com/himanshu64/himsha-network/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=himanshu64/himsha-network" alt="Contributors" />
+</a>
+
+<sub>The avatar grid above updates automatically as new contributors merge PRs.</sub>
