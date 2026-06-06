@@ -6,6 +6,7 @@
   <a href="#implementation-status"><img alt="status: proof of concept" src="https://img.shields.io/badge/status-proof--of--concept-orange"></a>
   <img alt="tests: 182 passing" src="https://img.shields.io/badge/tests-182%20passing-brightgreen">
   <img alt="built with Rust" src="https://img.shields.io/badge/built%20with-Rust-000000?logo=rust">
+  <a href="./LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="not audited" src="https://img.shields.io/badge/security-not%20audited-critical">
 </p>
 
