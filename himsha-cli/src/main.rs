@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // ---- CLI definition ----
 
@@ -87,15 +87,15 @@ enum ProgramCmd {
 #[derive(Serialize)]
 struct RpcRequest<'a, P: Serialize> {
     jsonrpc: &'a str,
-    id:      u32,
-    method:  &'a str,
-    params:  P,
+    id: u32,
+    method: &'a str,
+    params: P,
 }
 
 #[derive(Deserialize)]
 struct RpcResponse<T> {
     result: Option<T>,
-    error:  Option<serde_json::Value>,
+    error: Option<serde_json::Value>,
 }
 
 async fn rpc_call<P: Serialize, R: for<'de> Deserialize<'de>>(
@@ -104,14 +104,13 @@ async fn rpc_call<P: Serialize, R: for<'de> Deserialize<'de>>(
     params: P,
 ) -> Result<R> {
     let client = reqwest::Client::new();
-    let req = RpcRequest { jsonrpc: "2.0", id: 1, method, params };
-    let resp: RpcResponse<R> = client
-        .post(url)
-        .json(&req)
-        .send()
-        .await?
-        .json()
-        .await?;
+    let req = RpcRequest {
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params,
+    };
+    let resp: RpcResponse<R> = client.post(url).json(&req).send().await?.json().await?;
     if let Some(err) = resp.error {
         anyhow::bail!("RPC error: {err}");
     }
@@ -129,7 +128,8 @@ async fn main() -> Result<()> {
         Commands::Deploy { elf, image_id } => {
             let bytes = std::fs::read(&elf)?;
             let elf_hex = hex::encode(&bytes);
-            let program_id: String = rpc_call(url, "himsha_deployProgram", (elf_hex, image_id)).await?;
+            let program_id: String =
+                rpc_call(url, "himsha_deployProgram", (elf_hex, image_id)).await?;
             println!("deployed program: {program_id}");
         }
 
@@ -139,7 +139,7 @@ async fn main() -> Result<()> {
                     rpc_call(url, "himsha_getAccountInfo", (pubkey,)).await?;
                 match info {
                     Some(v) => println!("{}", serde_json::to_string_pretty(&v)?),
-                    None    => println!("account not found"),
+                    None => println!("account not found"),
                 }
             }
             AccountCmd::List { program_id } => {
@@ -165,7 +165,7 @@ async fn main() -> Result<()> {
                     rpc_call(url, "himsha_getBlock", (slot,)).await?;
                 match block {
                     Some(b) => println!("{}", serde_json::to_string_pretty(&b)?),
-                    None    => println!("block not found"),
+                    None => println!("block not found"),
                 }
             }
         },
@@ -176,7 +176,9 @@ async fn main() -> Result<()> {
                 if programs.is_empty() {
                     println!("no programs deployed");
                 } else {
-                    for p in programs { println!("  {p}"); }
+                    for p in programs {
+                        println!("  {p}");
+                    }
                 }
             }
             ProgramCmd::Utxo { txid, vout } => {
@@ -184,7 +186,7 @@ async fn main() -> Result<()> {
                     rpc_call(url, "himsha_getUtxo", (txid, vout)).await?;
                 match info {
                     Some(v) => println!("{}", serde_json::to_string_pretty(&v)?),
-                    None    => println!("UTXO not found or spent"),
+                    None => println!("UTXO not found or spent"),
                 }
             }
             ProgramCmd::New { name, dir } => scaffold_program(&name, &dir)?,
@@ -197,7 +199,7 @@ async fn main() -> Result<()> {
 /// Scaffold a new program crate (`himsha-<name>-program`) under `dir` from a
 /// minimal, compiling counter template — the "new program" on-ramp that improves
 /// the developer story around the native/RISC-Zero runtime.
-fn scaffold_program(name: &str, dir: &PathBuf) -> Result<()> {
+fn scaffold_program(name: &str, dir: &Path) -> Result<()> {
     let slug = name.trim().to_lowercase().replace([' ', '_'], "-");
     if slug.is_empty() || !slug.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         anyhow::bail!("invalid program name '{name}' (use kebab-case: letters, digits, '-')");

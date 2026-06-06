@@ -12,9 +12,9 @@ use tracing::{info, warn};
 /// Real-time mempool event emitted to subscribers.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum MempoolEvent {
-    Seen      { txid: String },
+    Seen { txid: String },
     Confirmed { txid: String, block_height: u64 },
-    Evicted   { txid: String },
+    Evicted { txid: String },
 }
 
 fn txid_to_bytes(txid: &Txid) -> [u8; 32] {
@@ -25,9 +25,9 @@ fn txid_to_bytes(txid: &Txid) -> [u8; 32] {
 
 /// Bitcoin node indexer — UTXO queries, mempool events, inscription lookups.
 pub struct BitcoinIndexer {
-    rpc:               Client,
-    network:           bitcoin::Network,
-    mempool_tx:        broadcast::Sender<MempoolEvent>,
+    rpc: Client,
+    network: bitcoin::Network,
+    mempool_tx: broadcast::Sender<MempoolEvent>,
     mempool_space_url: Option<String>,
 }
 
@@ -41,7 +41,12 @@ impl BitcoinIndexer {
     ) -> Result<Self> {
         let rpc = Client::new(rpc_url, Auth::UserPass(rpc_user.into(), rpc_pass.into()))?;
         let (tx, _) = broadcast::channel(1024);
-        Ok(Self { rpc, network, mempool_tx: tx, mempool_space_url })
+        Ok(Self {
+            rpc,
+            network,
+            mempool_tx: tx,
+            mempool_space_url,
+        })
     }
 
     /// Build an indexer from environment variables, or `None` if Bitcoin RPC
@@ -49,14 +54,14 @@ impl BitcoinIndexer {
     /// `BITCOIN_RPC_PASS`, optional `BITCOIN_NETWORK` (default regtest) and
     /// optional `MEMPOOL_SPACE_URL`.
     pub fn from_env() -> Option<Self> {
-        let url  = std::env::var("BITCOIN_RPC_URL").ok()?;
+        let url = std::env::var("BITCOIN_RPC_URL").ok()?;
         let user = std::env::var("BITCOIN_RPC_USER").ok()?;
         let pass = std::env::var("BITCOIN_RPC_PASS").ok()?;
         let network = match std::env::var("BITCOIN_NETWORK").as_deref() {
             Ok("mainnet") | Ok("bitcoin") => bitcoin::Network::Bitcoin,
-            Ok("testnet")                 => bitcoin::Network::Testnet,
-            Ok("signet")                  => bitcoin::Network::Signet,
-            _                              => bitcoin::Network::Regtest,
+            Ok("testnet") => bitcoin::Network::Testnet,
+            Ok("signet") => bitcoin::Network::Signet,
+            _ => bitcoin::Network::Regtest,
         };
         let mempool = std::env::var("MEMPOOL_SPACE_URL").ok();
         Self::new(&url, &user, &pass, network, mempool).ok()
@@ -74,28 +79,33 @@ impl BitcoinIndexer {
                 txid: txid_to_bytes(&txid_parsed),
                 vout,
             },
-            value:         o.value.to_sat(),
+            value: o.value.to_sat(),
             script_pubkey: hex::encode(&o.script_pub_key.hex),
             confirmations: o.confirmations,
         }))
     }
 
     pub fn list_address_utxos(&self, address: &str) -> Result<Vec<UtxoInfo>> {
-        let addr    = Address::from_str(address)?.require_network(self.network)?;
-        let unspent = self.rpc.list_unspent(Some(0), None, Some(&[&addr]), None, None)?;
-        Ok(unspent.into_iter().map(|u| UtxoInfo {
-            meta: UtxoMeta {
-                txid: txid_to_bytes(&u.txid),
-                vout: u.vout,
-            },
-            value:         u.amount.to_sat(),
-            script_pubkey: u.script_pub_key.to_hex_string(),
-            confirmations: u.confirmations,
-        }).collect())
+        let addr = Address::from_str(address)?.require_network(self.network)?;
+        let unspent = self
+            .rpc
+            .list_unspent(Some(0), None, Some(&[&addr]), None, None)?;
+        Ok(unspent
+            .into_iter()
+            .map(|u| UtxoInfo {
+                meta: UtxoMeta {
+                    txid: txid_to_bytes(&u.txid),
+                    vout: u.vout,
+                },
+                value: u.amount.to_sat(),
+                script_pubkey: u.script_pub_key.to_hex_string(),
+                confirmations: u.confirmations,
+            })
+            .collect())
     }
 
     pub fn broadcast(&self, raw_tx_hex: &str) -> Result<String> {
-        let raw  = hex::decode(raw_tx_hex)?;
+        let raw = hex::decode(raw_tx_hex)?;
         let txid = self.rpc.send_raw_transaction(raw.as_slice())?;
         info!("broadcast bitcoin tx {txid}");
         Ok(txid.to_string())
@@ -118,7 +128,12 @@ impl BitcoinIndexer {
         let txid = self.rpc.send_to_address(
             &addr,
             Amount::from_sat(sats),
-            None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )?;
         info!("sent {sats} sats to {recipient} in tx {txid}");
         Ok(txid.to_string())
@@ -149,8 +164,12 @@ impl BitcoinIndexer {
         let mut outputs = std::collections::HashMap::new();
         outputs.insert(addr.to_string(), Amount::from_sat(send));
 
-        let raw    = self.rpc.create_raw_transaction(&inputs, &outputs, None, None)?;
-        let signed = self.rpc.sign_raw_transaction_with_wallet(&raw, None, None)?;
+        let raw = self
+            .rpc
+            .create_raw_transaction(&inputs, &outputs, None, None)?;
+        let signed = self
+            .rpc
+            .sign_raw_transaction_with_wallet(&raw, None, None)?;
         if !signed.complete {
             return Err(anyhow!("wallet could not fully sign the utxo transfer"));
         }
@@ -161,8 +180,13 @@ impl BitcoinIndexer {
 
     pub async fn get_inscription(&self, inscription_id: &str) -> Option<InscriptionInfo> {
         let base = self.mempool_space_url.as_deref()?;
-        let url  = format!("{base}/api/v1/inscription/{inscription_id}");
-        reqwest::get(&url).await.ok()?.json::<InscriptionInfo>().await.ok()
+        let url = format!("{base}/api/v1/inscription/{inscription_id}");
+        reqwest::get(&url)
+            .await
+            .ok()?
+            .json::<InscriptionInfo>()
+            .await
+            .ok()
     }
 
     // ---- auto-sync ----
@@ -201,13 +225,18 @@ impl BitcoinIndexer {
 
         // Newly observed mempool transactions.
         for txid in current.difference(seen) {
-            let _ = self.mempool_tx.send(MempoolEvent::Seen { txid: txid.clone() });
+            let _ = self
+                .mempool_tx
+                .send(MempoolEvent::Seen { txid: txid.clone() });
         }
         // Transactions that left the mempool: confirmed if a block arrived this
         // tick, otherwise treated as evicted (RBF/expiry).
         for txid in seen.difference(&current) {
             let ev = if advanced {
-                MempoolEvent::Confirmed { txid: txid.clone(), block_height: height }
+                MempoolEvent::Confirmed {
+                    txid: txid.clone(),
+                    block_height: height,
+                }
             } else {
                 MempoolEvent::Evicted { txid: txid.clone() }
             };
@@ -221,11 +250,11 @@ impl BitcoinIndexer {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InscriptionInfo {
-    pub id:           String,
-    pub number:       u64,
+    pub id: String,
+    pub number: u64,
     pub content_type: Option<String>,
-    pub address:      Option<String>,
-    pub sat:          Option<u64>,
-    pub output:       Option<String>,
-    pub offset:       Option<u64>,
+    pub address: Option<String>,
+    pub sat: Option<u64>,
+    pub output: Option<String>,
+    pub offset: Option<u64>,
 }

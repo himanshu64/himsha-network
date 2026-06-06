@@ -180,9 +180,14 @@ pub fn init_collection(collection: Pubkey, payer: Pubkey, name: String) -> Instr
 
 #[allow(clippy::too_many_arguments)]
 pub fn place_bid(
-    collection: Pubkey, lender: Pubkey,
-    bid_utxo: UtxoMeta, loan_value: u64, loan_period: u64, interest_rate_bps: u64,
-    lender_ordinals_address: String, lender_payments_address: String,
+    collection: Pubkey,
+    lender: Pubkey,
+    bid_utxo: UtxoMeta,
+    loan_value: u64,
+    loan_period: u64,
+    interest_rate_bps: u64,
+    lender_ordinals_address: String,
+    lender_payments_address: String,
 ) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::lending_program(),
@@ -191,8 +196,12 @@ pub fn place_bid(
             AccountMeta::readonly(lender, true),
         ],
         &LendingInstruction::PlaceBid {
-            bid_utxo, loan_value, loan_period, interest_rate_bps,
-            lender_ordinals_address, lender_payments_address,
+            bid_utxo,
+            loan_value,
+            loan_period,
+            interest_rate_bps,
+            lender_ordinals_address,
+            lender_payments_address,
         },
     )
 }
@@ -209,9 +218,12 @@ pub fn cancel_bid(collection: Pubkey, lender: Pubkey, bid_utxo: UtxoMeta) -> Ins
 }
 
 pub fn accept_bid(
-    collection: Pubkey, borrower: Pubkey,
-    inscription_id: String, inscription_utxo: UtxoMeta,
-    borrower_ordinals_address: String, borrower_payments_address: String,
+    collection: Pubkey,
+    borrower: Pubkey,
+    inscription_id: String,
+    inscription_utxo: UtxoMeta,
+    borrower_ordinals_address: String,
+    borrower_payments_address: String,
 ) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::lending_program(),
@@ -220,20 +232,32 @@ pub fn accept_bid(
             AccountMeta::readonly(borrower, true),
         ],
         &LendingInstruction::AcceptBid {
-            inscription_id, inscription_utxo,
-            borrower_ordinals_address, borrower_payments_address,
+            inscription_id,
+            inscription_utxo,
+            borrower_ordinals_address,
+            borrower_payments_address,
         },
     )
 }
 
-pub fn repay_loan(collection: Pubkey, borrower: Pubkey, inscription_id: String, repayment_utxo: UtxoMeta, amount: u64) -> Instruction {
+pub fn repay_loan(
+    collection: Pubkey,
+    borrower: Pubkey,
+    inscription_id: String,
+    repayment_utxo: UtxoMeta,
+    amount: u64,
+) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::lending_program(),
         vec![
             AccountMeta::writable(collection, false),
             AccountMeta::readonly(borrower, true),
         ],
-        &LendingInstruction::RepayLoan { inscription_id, repayment_utxo, amount },
+        &LendingInstruction::RepayLoan {
+            inscription_id,
+            repayment_utxo,
+            amount,
+        },
     )
 }
 
@@ -250,9 +274,13 @@ pub fn claim_default(collection: Pubkey, lender: Pubkey, inscription_id: String)
 
 // ---- processing (runs inside zkVM) ----
 
-pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Result<(), ProgramError> {
-    let ix = LendingInstruction::try_from_slice(data)
-        .map_err(|_| ProgramError::InvalidInstruction)?;
+pub fn process(
+    accounts: &mut [AccountInfo],
+    data: &[u8],
+    timestamp: u64,
+) -> Result<(), ProgramError> {
+    let ix =
+        LendingInstruction::try_from_slice(data).map_err(|_| ProgramError::InvalidInstruction)?;
 
     // Every lending instruction is authorized by accounts[1] (the lender/borrower
     // for that action). The node marks it as a signer after verifying signatures.
@@ -277,8 +305,12 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
         }
 
         LendingInstruction::PlaceBid {
-            bid_utxo, loan_value, loan_period, interest_rate_bps,
-            lender_ordinals_address, lender_payments_address,
+            bid_utxo,
+            loan_value,
+            loan_period,
+            interest_rate_bps,
+            lender_ordinals_address,
+            lender_payments_address,
         } => {
             let acc = &mut accounts[0];
             let mut collection: CollectionAccount = acc.read_data()?;
@@ -287,10 +319,17 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
             if collection.bids.contains_key(&key) {
                 return Err(ProgramError::AlreadyInitialized);
             }
-            collection.bids.insert(key, Bid {
-                utxo: bid_utxo, loan_value, loan_period, interest_rate_bps,
-                lender_ordinals_address, lender_payments_address,
-            });
+            collection.bids.insert(
+                key,
+                Bid {
+                    utxo: bid_utxo,
+                    loan_value,
+                    loan_period,
+                    interest_rate_bps,
+                    lender_ordinals_address,
+                    lender_payments_address,
+                },
+            );
             acc.write_data(&collection)?;
         }
 
@@ -300,25 +339,33 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
 
             let key = format!("{}:{}", hex::encode(bid_utxo.txid), bid_utxo.vout);
             // Removing releases the lender's committed funds (never spent on-chain).
-            collection.bids.remove(&key).ok_or(ProgramError::NotInitialized)?;
+            collection
+                .bids
+                .remove(&key)
+                .ok_or(ProgramError::NotInitialized)?;
             acc.write_data(&collection)?;
         }
 
         LendingInstruction::AcceptBid {
-            inscription_id, inscription_utxo,
-            borrower_ordinals_address, borrower_payments_address,
+            inscription_id,
+            inscription_utxo,
+            borrower_ordinals_address,
+            borrower_payments_address,
         } => {
             let acc = &mut accounts[0];
             let mut collection: CollectionAccount = acc.read_data()?;
 
-            if collection.bids.is_empty() { return Err(ProgramError::NotInitialized); }
+            if collection.bids.is_empty() {
+                return Err(ProgramError::NotInitialized);
+            }
             // An inscription already pledged to an active loan can't be re-collateralized.
             if collection.active_loans.contains_key(&inscription_id) {
                 return Err(ProgramError::AlreadyInitialized);
             }
 
             // Pick the best bid (highest loan value)
-            let best_key = collection.bids
+            let best_key = collection
+                .bids
                 .iter()
                 .max_by_key(|(_, b)| b.loan_value)
                 .map(|(k, _)| k.clone())
@@ -326,27 +373,36 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
 
             let bid = collection.bids.remove(&best_key).unwrap();
 
-            collection.active_loans.insert(inscription_id.clone(), Loan {
-                inscription_id: inscription_id.clone(),
-                inscription_utxo,
-                loan_value: bid.loan_value,
-                loan_period: bid.loan_period,
-                interest_rate_bps: bid.interest_rate_bps,
-                lender_ordinals_address: bid.lender_ordinals_address,
-                lender_payments_address: bid.lender_payments_address,
-                borrower_ordinals_address,
-                borrower_payments_address,
-                started_at: timestamp,
-                repaid: 0,
-            });
+            collection.active_loans.insert(
+                inscription_id.clone(),
+                Loan {
+                    inscription_id: inscription_id.clone(),
+                    inscription_utxo,
+                    loan_value: bid.loan_value,
+                    loan_period: bid.loan_period,
+                    interest_rate_bps: bid.interest_rate_bps,
+                    lender_ordinals_address: bid.lender_ordinals_address,
+                    lender_payments_address: bid.lender_payments_address,
+                    borrower_ordinals_address,
+                    borrower_payments_address,
+                    started_at: timestamp,
+                    repaid: 0,
+                },
+            );
             acc.write_data(&collection)?;
         }
 
-        LendingInstruction::RepayLoan { inscription_id, repayment_utxo, amount } => {
+        LendingInstruction::RepayLoan {
+            inscription_id,
+            repayment_utxo,
+            amount,
+        } => {
             let acc = &mut accounts[0];
             let mut collection: CollectionAccount = acc.read_data()?;
 
-            let mut loan = collection.active_loans.remove(&inscription_id)
+            let mut loan = collection
+                .active_loans
+                .remove(&inscription_id)
                 .ok_or(ProgramError::NotInitialized)?;
 
             // Must repay within the agreed period.
@@ -357,7 +413,9 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
                 acc.write_data(&collection)?;
                 return Err(ProgramError::LoanExpired);
             }
-            if amount == 0 { return Err(ProgramError::InvalidInstruction); }
+            if amount == 0 {
+                return Err(ProgramError::InvalidInstruction);
+            }
 
             loan.repaid = loan.repaid.saturating_add(amount);
 
@@ -392,11 +450,15 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8], timestamp: u64) -> Res
             let acc = &mut accounts[0];
             let mut collection: CollectionAccount = acc.read_data()?;
 
-            let loan = collection.active_loans.remove(&inscription_id)
+            let loan = collection
+                .active_loans
+                .remove(&inscription_id)
                 .ok_or(ProgramError::NotInitialized)?;
 
             let elapsed = timestamp.saturating_sub(loan.started_at);
-            if elapsed <= loan.loan_period { return Err(ProgramError::LoanNotExpired); }
+            if elapsed <= loan.loan_period {
+                return Err(ProgramError::LoanNotExpired);
+            }
 
             // Queue settlement: the node transfers the inscription to the lender.
             collection.pending_settlements.push(Settlement {
@@ -420,7 +482,9 @@ mod tests {
     use super::*;
     use himsha_runtime::pubkey::Pubkey;
 
-    fn prog() -> Pubkey { himsha_runtime::program_ids::lending_program() }
+    fn prog() -> Pubkey {
+        himsha_runtime::program_ids::lending_program()
+    }
 
     fn accounts() -> Vec<AccountInfo> {
         vec![
@@ -429,9 +493,18 @@ mod tests {
         ]
     }
 
-    fn utxo(tag: u8, vout: u32) -> UtxoMeta { UtxoMeta { txid: [tag; 32], vout } }
+    fn utxo(tag: u8, vout: u32) -> UtxoMeta {
+        UtxoMeta {
+            txid: [tag; 32],
+            vout,
+        }
+    }
 
-    fn run(accounts: &mut [AccountInfo], ix: &LendingInstruction, ts: u64) -> Result<(), ProgramError> {
+    fn run(
+        accounts: &mut [AccountInfo],
+        ix: &LendingInstruction,
+        ts: u64,
+    ) -> Result<(), ProgramError> {
         process(accounts, &borsh::to_vec(ix).unwrap(), ts)
     }
 
@@ -442,21 +515,38 @@ mod tests {
 
     /// Like `open_loan`, but with an explicit flat interest rate (bps).
     fn open_loan_at(accounts: &mut Vec<AccountInfo>, start: u64, interest_rate_bps: u64) {
-        run(accounts, &LendingInstruction::InitCollection { name: "punks".into() }, start).unwrap();
-        run(accounts, &LendingInstruction::PlaceBid {
-            bid_utxo: utxo(1, 0),
-            loan_value: 100_000,
-            loan_period: 1_000,
-            interest_rate_bps,
-            lender_ordinals_address: "lender_ord".into(),
-            lender_payments_address: "lender_pay".into(),
-        }, start).unwrap();
-        run(accounts, &LendingInstruction::AcceptBid {
-            inscription_id: "insc1".into(),
-            inscription_utxo: utxo(2, 0),
-            borrower_ordinals_address: "borrower_ord".into(),
-            borrower_payments_address: "borrower_pay".into(),
-        }, start).unwrap();
+        run(
+            accounts,
+            &LendingInstruction::InitCollection {
+                name: "punks".into(),
+            },
+            start,
+        )
+        .unwrap();
+        run(
+            accounts,
+            &LendingInstruction::PlaceBid {
+                bid_utxo: utxo(1, 0),
+                loan_value: 100_000,
+                loan_period: 1_000,
+                interest_rate_bps,
+                lender_ordinals_address: "lender_ord".into(),
+                lender_payments_address: "lender_pay".into(),
+            },
+            start,
+        )
+        .unwrap();
+        run(
+            accounts,
+            &LendingInstruction::AcceptBid {
+                inscription_id: "insc1".into(),
+                inscription_utxo: utxo(2, 0),
+                borrower_ordinals_address: "borrower_ord".into(),
+                borrower_payments_address: "borrower_pay".into(),
+            },
+            start,
+        )
+        .unwrap();
     }
 
     fn collection(accounts: &[AccountInfo]) -> CollectionAccount {
@@ -468,7 +558,7 @@ mod tests {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0);
         let coll = collection(&accounts);
-        assert!(coll.bids.is_empty());                 // best bid consumed
+        assert!(coll.bids.is_empty()); // best bid consumed
         assert_eq!(coll.active_loans.len(), 1);
         assert_eq!(coll.active_loans["insc1"].loan_value, 100_000);
     }
@@ -477,11 +567,16 @@ mod tests {
     fn test_repay_in_time_queues_payment_and_return() {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0); // 0% interest → due = 100_000
-        run(&mut accounts, &LendingInstruction::RepayLoan {
-            inscription_id: "insc1".into(),
-            repayment_utxo: utxo(3, 0),
-            amount: 100_000,
-        }, 500).unwrap(); // within the 1000s period
+        run(
+            &mut accounts,
+            &LendingInstruction::RepayLoan {
+                inscription_id: "insc1".into(),
+                repayment_utxo: utxo(3, 0),
+                amount: 100_000,
+            },
+            500,
+        )
+        .unwrap(); // within the 1000s period
 
         let coll = collection(&accounts);
         assert!(coll.active_loans.is_empty()); // fully repaid → loan closed
@@ -503,30 +598,60 @@ mod tests {
     fn test_full_repay_requires_interest() {
         let mut accounts = accounts();
         open_loan_at(&mut accounts, 0, 1000); // 10% interest → due = 110_000
-        // Paying only the principal is a partial repayment: loan stays open.
-        run(&mut accounts, &LendingInstruction::RepayLoan {
-            inscription_id: "insc1".into(), repayment_utxo: utxo(3, 0), amount: 100_000,
-        }, 100).unwrap();
+                                              // Paying only the principal is a partial repayment: loan stays open.
+        run(
+            &mut accounts,
+            &LendingInstruction::RepayLoan {
+                inscription_id: "insc1".into(),
+                repayment_utxo: utxo(3, 0),
+                amount: 100_000,
+            },
+            100,
+        )
+        .unwrap();
         assert_eq!(collection(&accounts).active_loans.len(), 1);
 
         // Paying the remaining 10_000 interest closes it and returns the inscription.
-        run(&mut accounts, &LendingInstruction::RepayLoan {
-            inscription_id: "insc1".into(), repayment_utxo: utxo(4, 0), amount: 10_000,
-        }, 200).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::RepayLoan {
+                inscription_id: "insc1".into(),
+                repayment_utxo: utxo(4, 0),
+                amount: 10_000,
+            },
+            200,
+        )
+        .unwrap();
         let coll = collection(&accounts);
         assert!(coll.active_loans.is_empty());
-        assert!(coll.pending_settlements.iter().any(|s| s.kind == SettlementKind::ReturnInscription));
+        assert!(coll
+            .pending_settlements
+            .iter()
+            .any(|s| s.kind == SettlementKind::ReturnInscription));
         // Two repayment settlements (100k + 10k) plus one return.
-        assert_eq!(coll.pending_settlements.iter().filter(|s| s.kind == SettlementKind::Repayment).count(), 2);
+        assert_eq!(
+            coll.pending_settlements
+                .iter()
+                .filter(|s| s.kind == SettlementKind::Repayment)
+                .count(),
+            2
+        );
     }
 
     #[test]
     fn test_partial_repay_keeps_loan_open() {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0); // due 100_000
-        run(&mut accounts, &LendingInstruction::RepayLoan {
-            inscription_id: "insc1".into(), repayment_utxo: utxo(3, 0), amount: 40_000,
-        }, 100).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::RepayLoan {
+                inscription_id: "insc1".into(),
+                repayment_utxo: utxo(3, 0),
+                amount: 40_000,
+            },
+            100,
+        )
+        .unwrap();
         let coll = collection(&accounts);
         assert_eq!(coll.active_loans.len(), 1);
         assert_eq!(coll.active_loans["insc1"].repaid, 40_000);
@@ -540,9 +665,15 @@ mod tests {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0);
         assert_eq!(
-            run(&mut accounts, &LendingInstruction::RepayLoan {
-                inscription_id: "insc1".into(), repayment_utxo: utxo(3, 0), amount: 100_000,
-            }, 2_000), // past the deadline
+            run(
+                &mut accounts,
+                &LendingInstruction::RepayLoan {
+                    inscription_id: "insc1".into(),
+                    repayment_utxo: utxo(3, 0),
+                    amount: 100_000,
+                },
+                2_000
+            ), // past the deadline
             Err(ProgramError::LoanExpired),
         );
         // Loan preserved (not lost) after the failed repay.
@@ -552,19 +683,48 @@ mod tests {
     #[test]
     fn test_cancel_bid_removes_offer() {
         let mut accounts = accounts();
-        run(&mut accounts, &LendingInstruction::InitCollection { name: "punks".into() }, 0).unwrap();
-        run(&mut accounts, &LendingInstruction::PlaceBid {
-            bid_utxo: utxo(1, 0), loan_value: 100_000, loan_period: 1_000, interest_rate_bps: 0,
-            lender_ordinals_address: "lo".into(), lender_payments_address: "lp".into(),
-        }, 0).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::InitCollection {
+                name: "punks".into(),
+            },
+            0,
+        )
+        .unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::PlaceBid {
+                bid_utxo: utxo(1, 0),
+                loan_value: 100_000,
+                loan_period: 1_000,
+                interest_rate_bps: 0,
+                lender_ordinals_address: "lo".into(),
+                lender_payments_address: "lp".into(),
+            },
+            0,
+        )
+        .unwrap();
         assert_eq!(collection(&accounts).bids.len(), 1);
 
-        run(&mut accounts, &LendingInstruction::CancelBid { bid_utxo: utxo(1, 0) }, 0).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::CancelBid {
+                bid_utxo: utxo(1, 0),
+            },
+            0,
+        )
+        .unwrap();
         assert!(collection(&accounts).bids.is_empty());
 
         // Cancelling a non-existent bid fails.
         assert_eq!(
-            run(&mut accounts, &LendingInstruction::CancelBid { bid_utxo: utxo(9, 0) }, 0),
+            run(
+                &mut accounts,
+                &LendingInstruction::CancelBid {
+                    bid_utxo: utxo(9, 0)
+                },
+                0
+            ),
             Err(ProgramError::NotInitialized),
         );
     }
@@ -573,16 +733,31 @@ mod tests {
     fn test_accept_bid_double_pledge_fails() {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0); // insc1 now has an active loan
-        // Place another bid, then try to pledge insc1 again.
-        run(&mut accounts, &LendingInstruction::PlaceBid {
-            bid_utxo: utxo(5, 0), loan_value: 50_000, loan_period: 1_000, interest_rate_bps: 0,
-            lender_ordinals_address: "lo".into(), lender_payments_address: "lp".into(),
-        }, 0).unwrap();
+                                     // Place another bid, then try to pledge insc1 again.
+        run(
+            &mut accounts,
+            &LendingInstruction::PlaceBid {
+                bid_utxo: utxo(5, 0),
+                loan_value: 50_000,
+                loan_period: 1_000,
+                interest_rate_bps: 0,
+                lender_ordinals_address: "lo".into(),
+                lender_payments_address: "lp".into(),
+            },
+            0,
+        )
+        .unwrap();
         assert_eq!(
-            run(&mut accounts, &LendingInstruction::AcceptBid {
-                inscription_id: "insc1".into(), inscription_utxo: utxo(2, 0),
-                borrower_ordinals_address: "bo".into(), borrower_payments_address: "bp".into(),
-            }, 0),
+            run(
+                &mut accounts,
+                &LendingInstruction::AcceptBid {
+                    inscription_id: "insc1".into(),
+                    inscription_utxo: utxo(2, 0),
+                    borrower_ordinals_address: "bo".into(),
+                    borrower_payments_address: "bp".into(),
+                },
+                0
+            ),
             Err(ProgramError::AlreadyInitialized),
         );
     }
@@ -591,9 +766,14 @@ mod tests {
     fn test_claim_default_after_expiry_seizes_inscription() {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0);
-        run(&mut accounts, &LendingInstruction::ClaimDefault {
-            inscription_id: "insc1".into(),
-        }, 2_000).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::ClaimDefault {
+                inscription_id: "insc1".into(),
+            },
+            2_000,
+        )
+        .unwrap();
 
         let coll = collection(&accounts);
         assert!(coll.active_loans.is_empty());
@@ -609,7 +789,13 @@ mod tests {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0);
         assert_eq!(
-            run(&mut accounts, &LendingInstruction::ClaimDefault { inscription_id: "insc1".into() }, 500),
+            run(
+                &mut accounts,
+                &LendingInstruction::ClaimDefault {
+                    inscription_id: "insc1".into()
+                },
+                500
+            ),
             Err(ProgramError::LoanNotExpired),
         );
     }
@@ -618,7 +804,14 @@ mod tests {
     fn test_take_settlements_drains_queue() {
         let mut accounts = accounts();
         open_loan(&mut accounts, 0);
-        run(&mut accounts, &LendingInstruction::ClaimDefault { inscription_id: "insc1".into() }, 2_000).unwrap();
+        run(
+            &mut accounts,
+            &LendingInstruction::ClaimDefault {
+                inscription_id: "insc1".into(),
+            },
+            2_000,
+        )
+        .unwrap();
 
         let mut coll = collection(&accounts);
         let drained = take_settlements(&mut coll);

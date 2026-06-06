@@ -10,9 +10,15 @@ use crate::pubkey::Pubkey;
 pub struct Signature(pub [u8; 64]);
 
 impl Signature {
-    pub fn new(b: [u8; 64]) -> Self { Self(b) }
-    pub fn zeroed() -> Self { Self([0u8; 64]) }
-    pub fn as_bytes(&self) -> &[u8; 64] { &self.0 }
+    pub fn new(b: [u8; 64]) -> Self {
+        Self(b)
+    }
+    pub fn zeroed() -> Self {
+        Self([0u8; 64])
+    }
+    pub fn as_bytes(&self) -> &[u8; 64] {
+        &self.0
+    }
 
     /// Verify this BIP-340 Schnorr signature over `msg_hash` against `pubkey`,
     /// interpreting the 32-byte pubkey as an x-only secp256k1 public key.
@@ -22,19 +28,29 @@ impl Signature {
     /// is correct: such accounts can never be transaction signers. The all-zero
     /// signature also fails, so an unsigned transaction is rejected.
     pub fn verify(&self, msg_hash: &[u8; 32], pubkey: &Pubkey) -> bool {
-        let Ok(sig) = schnorr::Signature::from_slice(&self.0) else { return false };
-        let Ok(xonly) = XOnlyPublicKey::from_slice(pubkey.as_bytes()) else { return false };
+        let Ok(sig) = schnorr::Signature::from_slice(&self.0) else {
+            return false;
+        };
+        let Ok(xonly) = XOnlyPublicKey::from_slice(pubkey.as_bytes()) else {
+            return false;
+        };
         let msg = Secp256k1Message::from_digest(*msg_hash);
-        Secp256k1::verification_only().verify_schnorr(&sig, &msg, &xonly).is_ok()
+        Secp256k1::verification_only()
+            .verify_schnorr(&sig, &msg, &xonly)
+            .is_ok()
     }
 }
 
 impl AsRef<[u8]> for Signature {
-    fn as_ref(&self) -> &[u8] { &self.0 }
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl From<[u8; 64]> for Signature {
-    fn from(b: [u8; 64]) -> Self { Self(b) }
+    fn from(b: [u8; 64]) -> Self {
+        Self(b)
+    }
 }
 
 impl std::fmt::Debug for Signature {

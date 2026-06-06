@@ -77,9 +77,9 @@ mod tests {
             AccountInfo::new(Pubkey::from_seed(b"from"), sys, 1_000, 0).as_signer(),
             AccountInfo::new(Pubkey::from_seed(b"to"), sys, 0, 0),
         ];
-        let data = borsh::to_vec(
-            &himsha_system_program::SystemInstruction::Transfer { lamports: 100 },
-        ).unwrap();
+        let data =
+            borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 100 })
+                .unwrap();
         dispatch(&sys, &mut accounts, &data, 0).unwrap();
         assert_eq!(accounts[0].lamports, 900);
         assert_eq!(accounts[1].lamports, 100);
@@ -103,9 +103,12 @@ mod tests {
             AccountInfo::new(Pubkey::from_seed(b"from"), sys, 1_000, 0), // not a signer
             AccountInfo::new(Pubkey::from_seed(b"to"), sys, 0, 0),
         ];
-        let data = borsh::to_vec(
-            &himsha_system_program::SystemInstruction::Transfer { lamports: 100 },
-        ).unwrap();
-        assert_eq!(dispatch(&sys, &mut accounts, &data, 0), Err(ProgramError::MissingSigner));
+        let data =
+            borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 100 })
+                .unwrap();
+        assert_eq!(
+            dispatch(&sys, &mut accounts, &data, 0),
+            Err(ProgramError::MissingSigner)
+        );
     }
 }

@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use himsha_runtime::Pubkey;
+use std::collections::HashMap;
 
 /// Maps program IDs to their compiled ELF bytecode and RISC Zero image IDs.
 ///
@@ -24,7 +24,14 @@ impl ProgramRegistry {
     }
 
     pub fn register(&mut self, program_id: Pubkey, elf: Vec<u8>, image_id: [u8; 32]) {
-        self.programs.insert(program_id.into(), RegisteredProgram { program_id, elf, image_id });
+        self.programs.insert(
+            program_id.into(),
+            RegisteredProgram {
+                program_id,
+                elf,
+                image_id,
+            },
+        );
     }
 
     pub fn get(&self, program_id: &Pubkey) -> Option<&RegisteredProgram> {

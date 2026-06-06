@@ -62,14 +62,23 @@ impl<'a> ProgramExecutor<'a> {
         anchor_utxos: Vec<UtxoMeta>,
     ) -> Result<StateTransition, NodeError> {
         let mut accounts = input.accounts;
-        dispatch::dispatch(program_id, &mut accounts, &input.instruction_data, input.timestamp)
-            .map_err(|e| NodeError::VmError(format!("program error: {e}")))?;
+        dispatch::dispatch(
+            program_id,
+            &mut accounts,
+            &input.instruction_data,
+            input.timestamp,
+        )
+        .map_err(|e| NodeError::VmError(format!("program error: {e}")))?;
 
-        let state_bytes = borsh::to_vec(&accounts)
-            .map_err(|e| NodeError::SerError(e.to_string()))?;
+        let state_bytes =
+            borsh::to_vec(&accounts).map_err(|e| NodeError::SerError(e.to_string()))?;
         let journal_hash: [u8; 32] = Sha256::digest(&state_bytes).into();
 
-        debug!("native execution of program {} ({} accounts)", program_id, accounts.len());
+        debug!(
+            "native execution of program {} ({} accounts)",
+            program_id,
+            accounts.len()
+        );
 
         Ok(StateTransition {
             receipt: ExecutionReceipt {
@@ -132,17 +141,17 @@ impl<'a> ProgramExecutor<'a> {
 
         let exec_receipt = ExecutionReceipt {
             program_id: *program_id,
-            image_id:   prog.image_id,
+            image_id: prog.image_id,
             journal_hash,
             proof_bytes: receipt.journal.bytes.clone(), // store journal bytes as proof ref
-            verified:   true,
+            verified: true,
         };
 
         Ok(StateTransition {
-            receipt:          exec_receipt,
+            receipt: exec_receipt,
             updated_accounts: output.updated_accounts,
-            new_utxos:        anchor_utxos,
-            bitcoin_txid:     None,
+            new_utxos: anchor_utxos,
+            bitcoin_txid: None,
         })
     }
 }
@@ -161,10 +170,17 @@ mod tests {
             AccountInfo::new(Pubkey::from_seed(b"from"), sys, 1_000, 0).as_signer(),
             AccountInfo::new(Pubkey::from_seed(b"to"), sys, 0, 0),
         ];
-        let data = borsh::to_vec(
-            &himsha_system_program::SystemInstruction::Transfer { lamports: 250 },
-        ).unwrap();
-        (sys, ExecutionInput { accounts, instruction_data: data, timestamp: 0 })
+        let data =
+            borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 250 })
+                .unwrap();
+        (
+            sys,
+            ExecutionInput {
+                accounts,
+                instruction_data: data,
+                timestamp: 0,
+            },
+        )
     }
 
     #[test]
@@ -197,10 +213,14 @@ mod tests {
             AccountInfo::new(Pubkey::from_seed(b"from"), sys, 1_000, 0), // not a signer
             AccountInfo::new(Pubkey::from_seed(b"to"), sys, 0, 0),
         ];
-        let data = borsh::to_vec(
-            &himsha_system_program::SystemInstruction::Transfer { lamports: 100 },
-        ).unwrap();
-        let input = ExecutionInput { accounts, instruction_data: data, timestamp: 0 };
+        let data =
+            borsh::to_vec(&himsha_system_program::SystemInstruction::Transfer { lamports: 100 })
+                .unwrap();
+        let input = ExecutionInput {
+            accounts,
+            instruction_data: data,
+            timestamp: 0,
+        };
         let reg = ProgramRegistry::new();
         let ex = ProgramExecutor::new(&reg);
         assert!(ex.execute_native(&sys, input, vec![]).is_err());

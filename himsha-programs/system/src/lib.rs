@@ -26,12 +26,12 @@ pub enum SystemInstruction {
     /// Allocate a new account with `space` bytes of data, owned by `owner`.
     CreateAccount {
         lamports: u64,
-        space:    u64,
-        owner:    Pubkey,
+        space: u64,
+        owner: Pubkey,
     },
     /// Same as `CreateAccount` but anchors the new account to a Bitcoin UTXO.
     CreateAccountWithAnchor {
-        utxo:  UtxoMeta,
+        utxo: UtxoMeta,
         space: u64,
         owner: Pubkey,
     },
@@ -46,11 +46,11 @@ pub enum SystemInstruction {
 // ---- Instruction builders (used by SDK / CLI) ----
 
 pub fn create_account(
-    payer:       Pubkey,
+    payer: Pubkey,
     new_account: Pubkey,
-    lamports:    u64,
-    space:       u64,
-    owner:       Pubkey,
+    lamports: u64,
+    space: u64,
+    owner: Pubkey,
 ) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::system_program(),
@@ -58,16 +58,20 @@ pub fn create_account(
             AccountMeta::writable(payer, true),
             AccountMeta::writable(new_account, true),
         ],
-        &SystemInstruction::CreateAccount { lamports, space, owner },
+        &SystemInstruction::CreateAccount {
+            lamports,
+            space,
+            owner,
+        },
     )
 }
 
 pub fn create_account_with_anchor(
-    payer:       Pubkey,
+    payer: Pubkey,
     new_account: Pubkey,
-    utxo:        UtxoMeta,
-    space:       u64,
-    owner:       Pubkey,
+    utxo: UtxoMeta,
+    space: u64,
+    owner: Pubkey,
 ) -> Instruction {
     Instruction::with_args(
         himsha_runtime::program_ids::system_program(),
@@ -108,15 +112,16 @@ pub fn allocate(account: Pubkey, space: u64) -> Instruction {
 
 // ---- Core processing logic (runs inside zkVM guest) ----
 
-pub fn process(
-    accounts: &mut [AccountInfo],
-    instruction_data: &[u8],
-) -> Result<(), ProgramError> {
+pub fn process(accounts: &mut [AccountInfo], instruction_data: &[u8]) -> Result<(), ProgramError> {
     let ix = SystemInstruction::try_from_slice(instruction_data)
         .map_err(|_| ProgramError::InvalidInstruction)?;
 
     match ix {
-        SystemInstruction::CreateAccount { lamports, space, owner } => {
+        SystemInstruction::CreateAccount {
+            lamports,
+            space,
+            owner,
+        } => {
             ensure_signers(accounts, 0)?;
             let payer = &mut accounts[0];
             deduct_lamports(payer, lamports)?;
@@ -139,17 +144,21 @@ pub fn process(
             if new_acc.lamports != 0 || !new_acc.data.is_empty() {
                 return Err(ProgramError::AlreadyInitialized);
             }
-            new_acc.data  = vec![0u8; space as usize];
+            new_acc.data = vec![0u8; space as usize];
             new_acc.owner = owner;
-            new_acc.utxo  = Some(utxo);
+            new_acc.utxo = Some(utxo);
         }
 
         SystemInstruction::Transfer { lamports } => {
             ensure_signers(accounts, 0)?;
-            if accounts.len() < 2 { return Err(ProgramError::NotEnoughAccounts); }
+            if accounts.len() < 2 {
+                return Err(ProgramError::NotEnoughAccounts);
+            }
             let _from_lamps = accounts[0].lamports;
             deduct_lamports(&mut accounts[0], lamports)?;
-            accounts[1].lamports = accounts[1].lamports.checked_add(lamports)
+            accounts[1].lamports = accounts[1]
+                .lamports
+                .checked_add(lamports)
                 .ok_or(ProgramError::Overflow)?;
         }
 
@@ -183,7 +192,8 @@ fn ensure_signers(accounts: &[AccountInfo], index: usize) -> Result<(), ProgramE
 }
 
 fn deduct_lamports(account: &mut AccountInfo, amount: u64) -> Result<(), ProgramError> {
-    account.lamports = account.lamports
+    account.lamports = account
+        .lamports
         .checked_sub(amount)
         .ok_or(ProgramError::InsufficientFunds)?;
     Ok(())
@@ -199,24 +209,27 @@ mod tests {
         AccountInfo::new(Pubkey::from_seed(key.as_bytes()), owner, lamports, space)
     }
 
-    fn system_id() -> Pubkey { himsha_runtime::program_ids::system_program() }
+    fn system_id() -> Pubkey {
+        himsha_runtime::program_ids::system_program()
+    }
 
     // ---- CreateAccount ----
 
     #[test]
     fn test_create_account_basic() {
-        let _payer   = Pubkey::from_seed(b"payer");
+        let _payer = Pubkey::from_seed(b"payer");
         let _new_acc = Pubkey::from_seed(b"new");
-        let owner   = Pubkey::from_seed(b"prog");
+        let owner = Pubkey::from_seed(b"prog");
         let mut accounts = vec![
             make_account("payer", system_id(), 5_000_000, 0).as_signer(),
-            make_account("new",   system_id(), 0,         0),
+            make_account("new", system_id(), 0, 0),
         ];
         let ix = borsh::to_vec(&SystemInstruction::CreateAccount {
             lamports: 1_000_000,
             space: 128,
             owner,
-        }).unwrap();
+        })
+        .unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[1].lamports, 1_000_000);
         assert_eq!(accounts[1].data.len(), 128);
@@ -228,12 +241,18 @@ mod tests {
         let owner = Pubkey::from_seed(b"prog");
         let mut accounts = vec![
             make_account("payer", system_id(), 500, 0).as_signer(), // only 500 lamports
-            make_account("new",   system_id(), 0,   0),
+            make_account("new", system_id(), 0, 0),
         ];
         let ix = borsh::to_vec(&SystemInstruction::CreateAccount {
-            lamports: 1_000_000, space: 64, owner,
-        }).unwrap();
-        assert_eq!(process(&mut accounts, &ix), Err(ProgramError::InsufficientFunds));
+            lamports: 1_000_000,
+            space: 64,
+            owner,
+        })
+        .unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix),
+            Err(ProgramError::InsufficientFunds)
+        );
     }
 
     #[test]
@@ -241,12 +260,18 @@ mod tests {
         let owner = Pubkey::from_seed(b"prog");
         let mut accounts = vec![
             make_account("payer", system_id(), 5_000_000, 0).as_signer(),
-            make_account("new",   owner,        1_000_000, 64), // already has lamports
+            make_account("new", owner, 1_000_000, 64), // already has lamports
         ];
         let ix = borsh::to_vec(&SystemInstruction::CreateAccount {
-            lamports: 500_000, space: 64, owner,
-        }).unwrap();
-        assert_eq!(process(&mut accounts, &ix), Err(ProgramError::AlreadyInitialized));
+            lamports: 500_000,
+            space: 64,
+            owner,
+        })
+        .unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix),
+            Err(ProgramError::AlreadyInitialized)
+        );
     }
 
     // ---- Transfer ----
@@ -255,9 +280,12 @@ mod tests {
     fn test_transfer_basic() {
         let mut accounts = vec![
             make_account("from", system_id(), 5_000_000, 0).as_signer(),
-            make_account("to",   system_id(), 0,         0),
+            make_account("to", system_id(), 0, 0),
         ];
-        let ix = borsh::to_vec(&SystemInstruction::Transfer { lamports: 1_000_000 }).unwrap();
+        let ix = borsh::to_vec(&SystemInstruction::Transfer {
+            lamports: 1_000_000,
+        })
+        .unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[0].lamports, 4_000_000);
         assert_eq!(accounts[1].lamports, 1_000_000);
@@ -267,9 +295,12 @@ mod tests {
     fn test_transfer_exact_balance() {
         let mut accounts = vec![
             make_account("from", system_id(), 1_000_000, 0).as_signer(),
-            make_account("to",   system_id(), 0,         0),
+            make_account("to", system_id(), 0, 0),
         ];
-        let ix = borsh::to_vec(&SystemInstruction::Transfer { lamports: 1_000_000 }).unwrap();
+        let ix = borsh::to_vec(&SystemInstruction::Transfer {
+            lamports: 1_000_000,
+        })
+        .unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[0].lamports, 0);
         assert_eq!(accounts[1].lamports, 1_000_000);
@@ -279,10 +310,13 @@ mod tests {
     fn test_transfer_insufficient() {
         let mut accounts = vec![
             make_account("from", system_id(), 500, 0).as_signer(),
-            make_account("to",   system_id(), 0,   0),
+            make_account("to", system_id(), 0, 0),
         ];
         let ix = borsh::to_vec(&SystemInstruction::Transfer { lamports: 1_000 }).unwrap();
-        assert_eq!(process(&mut accounts, &ix), Err(ProgramError::InsufficientFunds));
+        assert_eq!(
+            process(&mut accounts, &ix),
+            Err(ProgramError::InsufficientFunds)
+        );
     }
 
     // ---- Assign ----
@@ -290,9 +324,7 @@ mod tests {
     #[test]
     fn test_assign_changes_owner() {
         let new_owner = Pubkey::from_seed(b"new-owner");
-        let mut accounts = vec![
-            make_account("acc", system_id(), 0, 0).as_signer(),
-        ];
+        let mut accounts = vec![make_account("acc", system_id(), 0, 0).as_signer()];
         let ix = borsh::to_vec(&SystemInstruction::Assign { owner: new_owner }).unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[0].owner, new_owner);
@@ -302,9 +334,7 @@ mod tests {
 
     #[test]
     fn test_allocate_grows_data() {
-        let mut accounts = vec![
-            make_account("acc", system_id(), 0, 0).as_signer(),
-        ];
+        let mut accounts = vec![make_account("acc", system_id(), 0, 0).as_signer()];
         let ix = borsh::to_vec(&SystemInstruction::Allocate { space: 256 }).unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[0].data.len(), 256);
@@ -326,14 +356,17 @@ mod tests {
     #[test]
     fn test_create_account_with_anchor() {
         let owner = Pubkey::from_seed(b"prog");
-        let utxo  = UtxoMeta::new([0xaau8; 32], 1);
+        let utxo = UtxoMeta::new([0xaau8; 32], 1);
         let mut accounts = vec![
             make_account("payer", system_id(), 5_000_000, 0).as_signer(),
-            make_account("new",   system_id(), 0,         0),
+            make_account("new", system_id(), 0, 0),
         ];
         let ix = borsh::to_vec(&SystemInstruction::CreateAccountWithAnchor {
-            utxo, space: 64, owner,
-        }).unwrap();
+            utxo,
+            space: 64,
+            owner,
+        })
+        .unwrap();
         process(&mut accounts, &ix).unwrap();
         assert_eq!(accounts[1].utxo, Some(utxo));
         assert_eq!(accounts[1].data.len(), 64);

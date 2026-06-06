@@ -147,8 +147,14 @@ mod tests {
         let mut accounts = vec![acc("a"), acc("b"), acc("c"), acc("d")];
         // Callee should see parent[2] as its [0] and parent[0] as its [1].
         invoke_indexed(&mut accounts, &[2, 0], &[0x42], callee).unwrap();
-        assert_eq!(accounts[2].lamports, 1, "callee[0] -> parent[2] lamports bumped");
-        assert_eq!(accounts[0].data[0], 0x42, "callee[1] -> parent[0] data written");
+        assert_eq!(
+            accounts[2].lamports, 1,
+            "callee[0] -> parent[2] lamports bumped"
+        );
+        assert_eq!(
+            accounts[0].data[0], 0x42,
+            "callee[1] -> parent[0] data written"
+        );
         // Untouched accounts stay put.
         assert_eq!(accounts[1].lamports, 0);
         assert_eq!(accounts[3].data[0], 0);

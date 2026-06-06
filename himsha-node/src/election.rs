@@ -55,7 +55,10 @@ impl ElectionState {
     /// *different* candidate this term. Newer terms reset the per-term vote.
     pub fn consider_vote(&mut self, term: u64, candidate: &str) -> VoteReply {
         if term < self.current_term {
-            return VoteReply { term: self.current_term, granted: false };
+            return VoteReply {
+                term: self.current_term,
+                granted: false,
+            };
         }
         if term > self.current_term {
             self.current_term = term;
@@ -64,10 +67,16 @@ impl ElectionState {
             self.leader = None;
         }
         let granted = match &self.voted_for {
-            None => { self.voted_for = Some(candidate.to_string()); true }
+            None => {
+                self.voted_for = Some(candidate.to_string());
+                true
+            }
             Some(c) => c == candidate,
         };
-        VoteReply { term: self.current_term, granted }
+        VoteReply {
+            term: self.current_term,
+            granted,
+        }
     }
 
     /// **PreVote** (Raft §9.6) — a *non-binding* poll that does **not** mutate term or
@@ -79,7 +88,10 @@ impl ElectionState {
     /// live leader (a leader won't endorse its own challenger). Read-only by design.
     pub fn consider_pre_vote(&self, term: u64) -> VoteReply {
         let granted = term >= self.current_term && !self.is_leader;
-        VoteReply { term: self.current_term, granted }
+        VoteReply {
+            term: self.current_term,
+            granted,
+        }
     }
 
     /// Begin a candidacy: bump to a new term and vote for ourselves.
@@ -117,7 +129,10 @@ impl ElectionState {
     }
 
     pub fn leader_info(&self) -> LeaderInfo {
-        LeaderInfo { term: self.current_term, leader: self.leader.clone() }
+        LeaderInfo {
+            term: self.current_term,
+            leader: self.leader.clone(),
+        }
     }
 }
 
@@ -182,7 +197,10 @@ mod tests {
         let mut s = ElectionState::default();
         s.observe_leader(7, "http://leader:9100");
         assert_eq!(s.current_term, 7);
-        assert_eq!(s.leader_info().leader.as_deref(), Some("http://leader:9100"));
+        assert_eq!(
+            s.leader_info().leader.as_deref(),
+            Some("http://leader:9100")
+        );
         assert!(!s.is_leader);
     }
 
@@ -192,8 +210,8 @@ mod tests {
         assert_eq!(quorum(2), 2);
         assert_eq!(quorum(3), 2);
         assert_eq!(quorum(5), 3);
-        assert!(has_quorum(2, 3));   // majority of 3
-        assert!(!has_quorum(1, 3));  // minority can't elect → no split-brain
+        assert!(has_quorum(2, 3)); // majority of 3
+        assert!(!has_quorum(1, 3)); // minority can't elect → no split-brain
         assert!(!has_quorum(2, 5));
         assert!(has_quorum(3, 5));
     }
@@ -202,7 +220,7 @@ mod tests {
     fn test_pre_vote_is_non_binding() {
         let mut s = ElectionState::default();
         s.consider_vote(5, "A"); // term=5, voted_for=A
-        // A pre-vote at term 6 is granted but must NOT change term or recorded vote.
+                                 // A pre-vote at term 6 is granted but must NOT change term or recorded vote.
         let pv = s.consider_pre_vote(6);
         assert!(pv.granted);
         assert_eq!(s.current_term, 5);
@@ -223,7 +241,7 @@ mod tests {
         let mut s = ElectionState::default();
         s.consider_vote(5, "A");
         assert!(!s.consider_pre_vote(4).granted); // older term → no
-        assert!(s.consider_pre_vote(5).granted);  // current → yes (non-leader)
+        assert!(s.consider_pre_vote(5).granted); // current → yes (non-leader)
     }
 
     #[test]
@@ -238,9 +256,9 @@ mod tests {
         let a_votes = 1 + a_from_c as usize; // A: self + C = 2
         let b_votes = 1 + b_from_c as usize; // B: self only = 1
 
-        assert!(has_quorum(a_votes, members));   // A wins (2 ≥ 2)
-        assert!(!has_quorum(b_votes, members));  // B cannot → no split-brain
-        // Exactly one leader in the term.
+        assert!(has_quorum(a_votes, members)); // A wins (2 ≥ 2)
+        assert!(!has_quorum(b_votes, members)); // B cannot → no split-brain
+                                                // Exactly one leader in the term.
         assert!(has_quorum(a_votes, members) ^ has_quorum(b_votes, members));
     }
 }

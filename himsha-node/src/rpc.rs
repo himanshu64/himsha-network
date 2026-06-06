@@ -49,7 +49,11 @@ pub trait HimshaRpc {
 
     /// Fetch UTXO details from the Bitcoin indexer.
     #[method(name = "himsha_getUtxo")]
-    async fn get_utxo(&self, txid: String, vout: u32) -> RpcResult<Option<himsha_runtime::utxo::UtxoInfo>>;
+    async fn get_utxo(
+        &self,
+        txid: String,
+        vout: u32,
+    ) -> RpcResult<Option<himsha_runtime::utxo::UtxoInfo>>;
 
     // ---- breadth: batch reads, faucet, tx lookup, introspection ----
 
@@ -62,15 +66,26 @@ pub trait HimshaRpc {
     /// bytes, funded with `lamports`. Fails if the account already exists.
     /// Enabled only when `HIMSHA_FAUCET=1`.
     #[method(name = "himsha_createAccountWithFaucet")]
-    async fn create_account_with_faucet(&self, pubkey: String, lamports: u64, space: u64) -> RpcResult<AccountInfo>;
+    async fn create_account_with_faucet(
+        &self,
+        pubkey: String,
+        lamports: u64,
+        space: u64,
+    ) -> RpcResult<AccountInfo>;
 
     /// Batch account read — one entry per input key, `null` where missing.
     #[method(name = "himsha_getMultipleAccounts")]
-    async fn get_multiple_accounts(&self, pubkeys: Vec<String>) -> RpcResult<Vec<Option<AccountInfo>>>;
+    async fn get_multiple_accounts(
+        &self,
+        pubkeys: Vec<String>,
+    ) -> RpcResult<Vec<Option<AccountInfo>>>;
 
     /// Look up a processed transaction by id (hex message hash) across recent blocks.
     #[method(name = "himsha_getProcessedTransaction")]
-    async fn get_processed_transaction(&self, txid: String) -> RpcResult<Option<RuntimeTransaction>>;
+    async fn get_processed_transaction(
+        &self,
+        txid: String,
+    ) -> RpcResult<Option<RuntimeTransaction>>;
 
     /// Node software version.
     #[method(name = "himsha_getVersion")]
@@ -110,12 +125,17 @@ pub trait HimshaRpc {
     /// grant iff `term` is current-or-newer and we are not a live leader. Does not mutate
     /// term or recorded vote, so it cannot inflate terms or unseat a healthy leader.
     #[method(name = "himsha_preVote")]
-    async fn pre_vote(&self, term: u64, candidate: String) -> RpcResult<crate::election::VoteReply>;
+    async fn pre_vote(&self, term: u64, candidate: String)
+        -> RpcResult<crate::election::VoteReply>;
 
     /// Raft-style leader-election vote: grant iff `term` is current-or-newer and we
     /// haven't already voted for a different candidate this term.
     #[method(name = "himsha_requestVote")]
-    async fn request_vote(&self, term: u64, candidate: String) -> RpcResult<crate::election::VoteReply>;
+    async fn request_vote(
+        &self,
+        term: u64,
+        candidate: String,
+    ) -> RpcResult<crate::election::VoteReply>;
 
     /// This node's view of the current leader (used as a heartbeat / for re-pointing
     /// standbys to a newly-elected leader).

@@ -10,13 +10,17 @@ use crate::{account::AccountMeta, pubkey::Pubkey};
 #[derive(Clone, Debug, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
 pub struct Instruction {
     pub program_id: Pubkey,
-    pub accounts:   Vec<AccountMeta>,
-    pub data:       Vec<u8>,
+    pub accounts: Vec<AccountMeta>,
+    pub data: Vec<u8>,
 }
 
 impl Instruction {
     pub fn new(program_id: Pubkey, accounts: Vec<AccountMeta>, data: Vec<u8>) -> Self {
-        Self { program_id, accounts, data }
+        Self {
+            program_id,
+            accounts,
+            data,
+        }
     }
 
     /// Convenience constructor: borsh-encodes `args` as the instruction data.
