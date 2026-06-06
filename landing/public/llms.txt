@@ -1,0 +1,45 @@
+# HIMSHA Network
+
+> An experimental Bitcoin programmability layer where every state transition is proven
+> correct by a RISC Zero zero-knowledge receipt — not a validator majority vote. An
+> educational proof of concept written in Rust. NOT audited; NOT for mainnet funds.
+
+## What it is
+
+- A Solana-style account + program model whose state transitions settle on Bitcoin L1.
+- Programs execute deterministically; correctness is (or can be) backed by a ZK receipt
+  rather than validator consensus.
+- Built-in programs: system, token, ATA (associated token account), swap (constant-product
+  AMM, x·y=k), lending (Bitcoin Ordinals collateral), money-market (interest-bearing
+  cToken lending, supply/borrow/repay/liquidate), yield vault (ERC-4626-style, deploys
+  idle assets into the money market via CPI), NFT metadata, runes, oracle.
+
+## Core security model (enforced and covered by 182 passing tests)
+
+- BIP-340 Schnorr transaction signature verification (secp256k1).
+- Replay protection: signed `recent_blockhash` + `chain_id`, plus txid de-duplication.
+- Account writability enforcement (only writable accounts can be mutated).
+- Cross-program-invocation (CPI) depth limit.
+- Atomic per-transaction state commits (all-or-nothing).
+- ZK receipt binding gate: the node only persists a transition whose receipt commits to
+  exactly the accounts produced (native integrity check).
+
+## Under active development (contributions welcome)
+
+- Cryptographic ZK proving via the `--features zkvm` RISC Zero path.
+- Account owner enforcement, native compute metering, execution at block-inclusion time.
+- Bitcoin L1 anchoring of block/state roots, consensus log replication + commit index,
+  FROST/Taproot threshold custody for settlement, end-to-end Lightning verification.
+
+## Technology
+
+Rust · RISC Zero (zkVM) · Bitcoin (Taproot, Schnorr, BIP-340) · secp256k1 / FROST
+threshold signatures · Lightning Network (LND) · redb (embedded storage) · Tokio (async)
+· borsh (serialization) · JSON-RPC.
+
+## Links
+
+- Repository: https://github.com/himanshu64/himsha-network
+- License: MIT
+- Roadmap and open issues: https://github.com/himanshu64/himsha-network/milestone/1
+- Docs: https://github.com/himanshu64/himsha-network/tree/main/docs
