@@ -1,0 +1,82 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A0D14"/>
+      <stop offset="0.55" stop-color="#0E1320"/>
+      <stop offset="1" stop-color="#0A0D14"/>
+    </linearGradient>
+    <linearGradient id="btc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB454"/>
+      <stop offset="1" stop-color="#F7931A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7931A" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#F7931A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C8D2E0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1198" height="628" rx="0" fill="none" stroke="#1E2636" stroke-width="2"/>
+
+  <!-- faint dot grid -->
+  <g fill="#27324A" opacity="0.5">
+    <circle cx="80" cy="80" r="2"/><circle cx="150" cy="80" r="2"/><circle cx="220" cy="80" r="2"/>
+    <circle cx="80" cy="150" r="2"/><circle cx="150" cy="150" r="2"/><circle cx="220" cy="150" r="2"/>
+    <circle cx="1120" cy="550" r="2"/><circle cx="1050" cy="550" r="2"/><circle cx="980" cy="550" r="2"/>
+    <circle cx="1120" cy="480" r="2"/><circle cx="1050" cy="480" r="2"/><circle cx="980" cy="480" r="2"/>
+  </g>
+
+  <!-- emblem -->
+  <g transform="translate(250,315)">
+    <circle cx="0" cy="0" r="170" fill="url(#glow)"/>
+    <polygon points="0,-130 113,-65 113,65 0,130 -113,65 -113,-65"
+             fill="#0D1322" stroke="url(#btc)" stroke-width="4"/>
+    <polygon points="0,-92 80,-46 80,46 0,92 -80,46 -80,-46"
+             fill="none" stroke="#33405C" stroke-width="2.5" opacity="0.8"/>
+    <text x="0" y="40" text-anchor="middle"
+          font-family="Georgia, 'Times New Roman', serif" font-size="135" font-weight="700"
+          fill="url(#btc)">&#8383;</text>
+    <g transform="translate(82,-82)">
+      <circle cx="0" cy="0" r="36" fill="#16A34A" stroke="#0A0D14" stroke-width="5"/>
+      <path d="M -15 1 L -4 12 L 16 -11" fill="none" stroke="#FFFFFF" stroke-width="7"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- wordmark + tagline -->
+  <text x="470" y="230" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="64" font-weight="800" letter-spacing="2" fill="url(#word)">HIMSHA Network</text>
+  <rect x="472" y="258" width="300" height="5" rx="2.5" fill="url(#btc)"/>
+
+  <text x="470" y="345" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="52" font-weight="700" fill="#E2E8F0">Program Bitcoin.</text>
+  <text x="470" y="410" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="52" font-weight="700" fill="#F7931A">Proven by ZK.</text>
+
+  <text x="470" y="470" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="24" font-weight="400" fill="#7C8BA3">Every state transition proven by a RISC&#160;Zero ZK receipt &#183; settles on Bitcoin</text>
+
+  <!-- chips -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="600">
+    <g transform="translate(470,510)">
+      <rect x="0" y="0" width="150" height="40" rx="20" fill="#11182A" stroke="#2A3650" stroke-width="2"/>
+      <text x="75" y="27" text-anchor="middle" fill="#9FB0C9">182 tests</text>
+    </g>
+    <g transform="translate(636,510)">
+      <rect x="0" y="0" width="150" height="40" rx="20" fill="#11182A" stroke="#2A3650" stroke-width="2"/>
+      <text x="75" y="27" text-anchor="middle" fill="#9FB0C9">RISC Zero</text>
+    </g>
+    <g transform="translate(802,510)">
+      <rect x="0" y="0" width="120" height="40" rx="20" fill="#11182A" stroke="#2A3650" stroke-width="2"/>
+      <text x="60" y="27" text-anchor="middle" fill="#9FB0C9">Rust</text>
+    </g>
+    <g transform="translate(938,510)">
+      <rect x="0" y="0" width="100" height="40" rx="20" fill="#11182A" stroke="#2A3650" stroke-width="2"/>
+      <text x="50" y="27" text-anchor="middle" fill="#9FB0C9">MIT</text>
+    </g>
+  </g>
+</svg>
