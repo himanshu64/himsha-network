@@ -7,6 +7,9 @@ import {
   ShieldCheck,
   Cpu,
   Bitcoin,
+  Layers,
+  Coins,
+  KeyRound,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -22,11 +25,56 @@ const NAV = [
   { label: 'Roadmap', href: `${GITHUB}/milestone/1` },
 ]
 
+// Hero slides the Previous / Next arrows cycle through.
+const SLIDES = [
+  {
+    meta: [
+      { Icon: ShieldCheck, text: '182 tests passing' },
+      { Icon: Cpu, text: 'RISC Zero zkVM' },
+      { Icon: Bitcoin, text: 'Settles on Bitcoin' },
+    ],
+    title: ['Program Bitcoin.', 'Proven by ZK.'],
+    desc: 'An experimental Bitcoin programmability layer — every state transition is proven correct by a RISC Zero ZK receipt, not a validator vote.',
+  },
+  {
+    meta: [
+      { Icon: Layers, text: 'AMM · Lending · Vaults' },
+      { Icon: Coins, text: 'Money market' },
+      { Icon: Bitcoin, text: 'On Bitcoin L1' },
+    ],
+    title: ['DeFi,', 'settled on Bitcoin.'],
+    desc: 'Token, a constant-product AMM, lending, an interest-bearing money market, and yield vaults — composable programs that settle on Bitcoin.',
+  },
+  {
+    meta: [
+      { Icon: KeyRound, text: 'BIP-340 Schnorr' },
+      { Icon: ShieldCheck, text: 'Replay-protected' },
+      { Icon: Cpu, text: 'Atomic state' },
+    ],
+    title: ['Real signatures.', 'No replays.'],
+    desc: 'Every transaction is Schnorr-verified, replay-protected by a recent blockhash and chain id, and committed atomically.',
+  },
+  {
+    meta: [
+      { Icon: Github, text: 'MIT licensed' },
+      { Icon: Cpu, text: 'Written in Rust' },
+      { Icon: ShieldCheck, text: '182 tests' },
+    ],
+    title: ['Open source.', 'Come build.'],
+    desc: 'Fully open source and contributable — pick a roadmap item and open a pull request.',
+  },
+]
+
 const VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_094145_4a271a6c-3869-4f1c-8aa7-aeb0cb227994.mp4'
 
 export default function App() {
   const [open, setOpen] = useState(false)
+  const [slide, setSlide] = useState(0)
+
+  const prev = () => setSlide((s) => (s - 1 + SLIDES.length) % SLIDES.length)
+  const next = () => setSlide((s) => (s + 1) % SLIDES.length)
+  const current = SLIDES[slide]
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black text-white">
@@ -165,47 +213,42 @@ export default function App() {
         {/* Hero content (bottom) */}
         <div className="z-10 flex flex-1 flex-col justify-end px-4 pb-8 sm:px-6 md:px-12 md:pb-16">
           <div className="flex flex-col items-end gap-8 md:flex-row">
-            {/* Left */}
+            {/* Left — keyed by slide so it re-animates on Prev/Next */}
             <div className="flex-1">
-              {/* Metadata */}
-              <div
-                className="animate-blur-fade-up mb-6 flex flex-wrap items-center gap-3 text-xs sm:gap-6 sm:text-sm md:mb-8"
-                style={{ animationDelay: '300ms' }}
-              >
-                <span className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="sm:h-5 sm:w-5" />
-                  <span className="font-medium">182 tests passing</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <Cpu size={16} className="sm:h-5 sm:w-5" />
-                  RISC Zero zkVM
-                </span>
-                <span className="flex items-center gap-2">
-                  <Bitcoin size={16} className="sm:h-5 sm:w-5" />
-                  Settles on Bitcoin
-                </span>
+              <div key={slide}>
+                {/* Metadata */}
+                <div
+                  className="animate-blur-fade-up mb-6 flex flex-wrap items-center gap-3 text-xs sm:gap-6 sm:text-sm md:mb-8"
+                  style={{ animationDelay: '60ms' }}
+                >
+                  {current.meta.map(({ Icon, text }, i) => (
+                    <span key={i} className="flex items-center gap-2">
+                      <Icon size={16} className="sm:h-5 sm:w-5" />
+                      <span className="font-medium">{text}</span>
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title */}
+                <h1
+                  className="animate-blur-fade-up mb-4 text-3xl font-normal sm:text-5xl md:mb-6 md:text-6xl lg:text-7xl"
+                  style={{ animationDelay: '120ms', letterSpacing: '-0.04em' }}
+                >
+                  {current.title[0]}
+                  <br />
+                  {current.title[1]}
+                </h1>
+
+                {/* Description */}
+                <p
+                  className="animate-blur-fade-up mb-6 max-w-2xl text-base text-gray-300 sm:text-lg md:mb-12 md:text-xl"
+                  style={{ animationDelay: '200ms' }}
+                >
+                  {current.desc}
+                </p>
               </div>
 
-              {/* Title */}
-              <h1
-                className="animate-blur-fade-up mb-4 text-3xl font-normal sm:text-5xl md:mb-6 md:text-6xl lg:text-7xl"
-                style={{ animationDelay: '400ms', letterSpacing: '-0.04em' }}
-              >
-                Program Bitcoin.
-                <br />
-                Proven by ZK.
-              </h1>
-
-              {/* Description */}
-              <p
-                className="animate-blur-fade-up mb-6 max-w-2xl text-base text-gray-300 sm:text-lg md:mb-12 md:text-xl"
-                style={{ animationDelay: '500ms' }}
-              >
-                An experimental Bitcoin programmability layer — every state transition is
-                proven correct by a RISC&nbsp;Zero ZK receipt, not a validator vote.
-              </p>
-
-              {/* CTAs */}
+              {/* CTAs (static) */}
               <div className="flex flex-wrap gap-3 sm:gap-4">
                 <a
                   href={`${GITHUB}#quick-start`}
@@ -226,24 +269,41 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right: nav arrows */}
-            <div className="flex gap-3">
-              <button
-                aria-label="Previous"
-                className="liquid-glass animate-blur-fade-up flex items-center gap-2 rounded-full px-4 py-2.5 sm:px-6 sm:py-3"
-                style={{ animationDelay: '800ms' }}
-              >
-                <ChevronLeft size={18} />
-                <span className="hidden sm:inline">Previous</span>
-              </button>
-              <button
-                aria-label="Next"
-                className="liquid-glass animate-blur-fade-up flex items-center gap-2 rounded-full px-4 py-2.5 sm:px-6 sm:py-3"
-                style={{ animationDelay: '900ms' }}
-              >
-                <span className="hidden sm:inline">Next</span>
-                <ChevronRight size={18} />
-              </button>
+            {/* Right: working carousel arrows + dots */}
+            <div className="flex flex-col items-start gap-3 md:items-end">
+              <div className="flex gap-3">
+                <button
+                  onClick={prev}
+                  aria-label="Previous"
+                  className="liquid-glass animate-blur-fade-up flex items-center gap-2 rounded-full px-4 py-2.5 transition-opacity hover:opacity-80 sm:px-6 sm:py-3"
+                  style={{ animationDelay: '800ms' }}
+                >
+                  <ChevronLeft size={18} />
+                  <span className="hidden sm:inline">Previous</span>
+                </button>
+                <button
+                  onClick={next}
+                  aria-label="Next"
+                  className="liquid-glass animate-blur-fade-up flex items-center gap-2 rounded-full px-4 py-2.5 transition-opacity hover:opacity-80 sm:px-6 sm:py-3"
+                  style={{ animationDelay: '900ms' }}
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              {/* Slide indicator dots */}
+              <div className="flex items-center gap-2">
+                {SLIDES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSlide(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i === slide ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
