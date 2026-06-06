@@ -5,9 +5,19 @@
 <p align="center">
   <a href="#implementation-status"><img alt="status: proof of concept" src="https://img.shields.io/badge/status-proof--of--concept-orange"></a>
   <img alt="tests: 182 passing" src="https://img.shields.io/badge/tests-182%20passing-brightgreen">
-  <img alt="built with Rust" src="https://img.shields.io/badge/built%20with-Rust-000000?logo=rust">
   <a href="./LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="not audited" src="https://img.shields.io/badge/security-not%20audited-critical">
+</p>
+
+<p align="center">
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white">
+  <img alt="RISC Zero zkVM" src="https://img.shields.io/badge/RISC%20Zero-zkVM-5B2A86">
+  <img alt="Bitcoin" src="https://img.shields.io/badge/Bitcoin-F7931A?logo=bitcoin&logoColor=white">
+  <img alt="Taproot / Schnorr (BIP-340)" src="https://img.shields.io/badge/Taproot-Schnorr%20BIP--340-4B5563">
+  <img alt="secp256k1" src="https://img.shields.io/badge/secp256k1-FROST%20threshold-2D6A4F">
+  <img alt="Lightning (LND)" src="https://img.shields.io/badge/Lightning-LND-792EE5">
+  <img alt="Tokio" src="https://img.shields.io/badge/async-Tokio-0B7261">
+  <img alt="redb" src="https://img.shields.io/badge/storage-redb-1F6FEB">
 </p>
 
 # HIMSHA Network
