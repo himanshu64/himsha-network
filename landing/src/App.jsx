@@ -104,10 +104,10 @@ export default function App() {
           {/* Logo */}
           <a
             href={GITHUB}
-            className="animate-blur-fade-up flex h-8 items-center text-xl font-bold tracking-tight md:h-10 md:text-2xl"
+            className="animate-blur-fade-up flex h-8 items-center text-lg font-bold tracking-tight sm:text-xl md:h-10 md:text-2xl"
             style={{ animationDelay: '0ms' }}
           >
-            HIMSHA
+            HIMSHA&nbsp;Network
           </a>
 
           {/* Center links (lg+) */}
