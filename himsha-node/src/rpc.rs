@@ -183,6 +183,24 @@ pub trait HimshaRpc {
     /// Returns `null` if the account does not exist.
     #[method(name = "himsha_getStateProof")]
     async fn get_state_proof(&self, pubkey: String) -> RpcResult<Option<StateProof>>;
+
+    /// Execution status of a submitted transaction (hex id): `pending` while
+    /// queued, then `succeeded`/`failed` once the block producer executes it.
+    /// `null` if the node has never seen the id. Lets a client distinguish a
+    /// failed transaction from one still in flight, instead of a silent timeout.
+    #[method(name = "himsha_getSignatureStatus")]
+    async fn get_signature_status(&self, txid: String) -> RpcResult<Option<SignatureStatus>>;
+}
+
+/// A transaction's execution status (see [`crate::state::TxStatus`]).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignatureStatus {
+    /// One of `pending`, `succeeded`, `failed`.
+    pub status: String,
+    /// Block slot the outcome was recorded in (absent while `pending`).
+    pub slot: Option<u64>,
+    /// Failure reason when `status == "failed"`.
+    pub error: Option<String>,
 }
 
 /// A state-root inclusion proof for one account (see [`crate::state`] and

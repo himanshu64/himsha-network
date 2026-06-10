@@ -3,12 +3,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
-use crate::{bitcoin_indexer::BitcoinIndexer, state::NodeState};
+use crate::{
+    bitcoin_indexer::BitcoinIndexer,
+    execution::{Executor, Mode},
+    state::{NodeState, TxStatus},
+};
 
-/// Collects pending transactions, forms blocks, and writes them to storage.
+/// Collects pending transactions, executes them authoritatively, forms blocks,
+/// and writes them to storage. This is the **execution point**: the RPC only
+/// validates + preflights + queues, so block production is where a transaction's
+/// effects actually commit, in a single deterministic order.
 pub struct BlockProducer {
     state: NodeState,
     pending_rx: mpsc::Receiver<RuntimeTransaction>,
+    /// Shared executor (state + program registry + settlement custody).
+    executor: Executor,
     /// Commit the state root to Bitcoin every N blocks (0 = disabled). Set via
     /// `HIMSHA_ANCHOR_INTERVAL`; requires Bitcoin RPC (`BITCOIN_RPC_URL`).
     anchor_interval: u64,
@@ -17,7 +26,11 @@ pub struct BlockProducer {
 }
 
 impl BlockProducer {
-    pub fn new(state: NodeState, pending_rx: mpsc::Receiver<RuntimeTransaction>) -> Self {
+    pub fn new(
+        state: NodeState,
+        pending_rx: mpsc::Receiver<RuntimeTransaction>,
+        executor: Executor,
+    ) -> Self {
         let anchor_interval = std::env::var("HIMSHA_ANCHOR_INTERVAL")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
@@ -43,6 +56,7 @@ impl BlockProducer {
         Self {
             state,
             pending_rx,
+            executor,
             anchor_interval,
             indexer,
         }
@@ -77,25 +91,55 @@ impl BlockProducer {
                 .unwrap_or_default()
                 .as_secs();
 
-            // The state root reflects post-execution state: transactions execute
-            // at RPC time, so by now their writes are committed and the root over
-            // the account table is their cumulative commitment.
+            // Execute each queued transaction authoritatively, in order. A tx that
+            // commits is included in the block and marked Succeeded; one that fails
+            // here (e.g. state changed since its preflight) is excluded and marked
+            // Failed with the reason — never a silent drop. Each commit persists
+            // atomically, so by the loop's end the account table is fully updated.
+            let mut included: Vec<RuntimeTransaction> = Vec::with_capacity(batch.len());
+            for tx in batch {
+                let txid = tx.message_hash();
+                match self.executor.apply(&tx, Mode::Commit).await {
+                    Ok(()) => included.push(tx),
+                    Err(e) => {
+                        error!(
+                            "tx {} failed at slot {slot}: {}",
+                            hex::encode(txid),
+                            e.message
+                        );
+                        let _ = self.state.set_tx_status(
+                            &txid,
+                            &TxStatus::Failed {
+                                slot,
+                                error: e.message,
+                            },
+                        );
+                    }
+                }
+            }
+
+            // The state root now reflects every committed transaction in this slot.
             let state_root = self.state.compute_state_root().unwrap_or_else(|e| {
                 error!("compute_state_root slot={slot}: {e}");
                 [0u8; 32]
             });
-            let block = Block::new_with_root(slot, parent_slot, batch, ts, state_root);
+            let block = Block::new_with_root(slot, parent_slot, included, ts, state_root);
             let bytes = serde_json::to_vec(&block).unwrap_or_default();
 
             if let Err(e) = self.state.save_block(slot, bytes) {
                 error!("save_block slot={slot}: {e}");
                 continue;
             }
-            // Index each tx for O(1) lookup + explorer counters.
+            // Index each tx for O(1) lookup + explorer counters, and record that
+            // it succeeded in this slot (the tx executed before block inclusion).
             for tx in &block.transactions {
-                if let Err(e) = self.state.index_transaction(&tx.message_hash(), slot) {
+                let txid = tx.message_hash();
+                if let Err(e) = self.state.index_transaction(&txid, slot) {
                     error!("index_transaction slot={slot}: {e}");
                 }
+                let _ = self
+                    .state
+                    .set_tx_status(&txid, &crate::state::TxStatus::Succeeded { slot });
             }
             info!(
                 "produced block slot={slot} txs={} state_root={}",

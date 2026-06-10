@@ -28,6 +28,22 @@ const BTC_TX_IDX: TableDefinition<&[u8], &[u8]> = TableDefinition::new("btc_tx_i
 const ANCHORS: TableDefinition<u64, &[u8]> = TableDefinition::new("anchors");
 // META key holding the highest anchored slot (so `latest_anchor` is O(1)).
 const ANCHOR_TIP_KEY: &str = "anchor_tip_slot";
+// himsha_txid(32) -> borsh(TxStatus) : execution outcome a client can poll for.
+const TX_STATUS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("tx_status");
+
+/// Execution outcome of a submitted transaction. The RPC accepts a tx (sig +
+/// replay valid) as `Pending`; the block producer flips it to `Succeeded` or
+/// `Failed` when it executes the tx authoritatively. Surfaced by
+/// `himsha_getSignatureStatus` so failures aren't silent timeouts.
+#[derive(Clone, Debug, PartialEq, Eq, BorshSerialize, BorshDeserialize)]
+pub enum TxStatus {
+    /// Accepted and queued, not yet executed in a block.
+    Pending,
+    /// Executed and committed in `slot`.
+    Succeeded { slot: u64 },
+    /// Rejected during authoritative execution in `slot`, with the reason.
+    Failed { slot: u64, error: String },
+}
 
 /// A state root committed to Bitcoin: the HIMSHA slot it reflects, the Merkle
 /// root over account state at that slot, and the OP_RETURN transaction's txid.
@@ -58,6 +74,7 @@ impl NodeState {
         w.open_table(TX_IDX)?;
         w.open_table(BTC_TX_IDX)?;
         w.open_table(ANCHORS)?;
+        w.open_table(TX_STATUS)?;
         w.commit()?;
         let s = Self { db: Arc::new(db) };
         s.backfill_owner_index()?; // migrate pre-index DBs (no-op when already built)
@@ -305,6 +322,29 @@ impl NodeState {
         let bytes = anchors.get(tip)?.map(|v| v.value().to_vec());
         match bytes {
             Some(b) => Ok(Some(AnchorRecord::try_from_slice(&b)?)),
+            None => Ok(None),
+        }
+    }
+
+    // ---- transaction status (async execution outcomes) ----
+
+    /// Record (or update) the execution status of a transaction by its id.
+    pub fn set_tx_status(&self, txid: &[u8; 32], status: &TxStatus) -> Result<()> {
+        let bytes = borsh::to_vec(status)?;
+        let w = self.db.begin_write()?;
+        {
+            let mut t = w.open_table(TX_STATUS)?;
+            t.insert(txid.as_slice(), bytes.as_slice())?;
+        }
+        w.commit()?;
+        Ok(())
+    }
+
+    /// Fetch a transaction's recorded execution status, if any.
+    pub fn get_tx_status(&self, txid: &[u8; 32]) -> Result<Option<TxStatus>> {
+        let bytes = Self::read_bytes(&self.db, TX_STATUS, txid.as_slice())?;
+        match bytes {
+            Some(b) => Ok(Some(TxStatus::try_from_slice(&b)?)),
             None => Ok(None),
         }
     }
@@ -600,6 +640,37 @@ mod tests {
         // Mutating an account changes the root.
         s.save_account(&keys[2], &acct(prog, 999)).unwrap();
         assert_ne!(s.compute_state_root().unwrap(), root);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_tx_status_lifecycle() {
+        let (s, path) = tmp_state("txstatus");
+        let txid = [9u8; 32];
+        assert!(s.get_tx_status(&txid).unwrap().is_none());
+        s.set_tx_status(&txid, &TxStatus::Pending).unwrap();
+        assert_eq!(s.get_tx_status(&txid).unwrap(), Some(TxStatus::Pending));
+        s.set_tx_status(&txid, &TxStatus::Succeeded { slot: 7 })
+            .unwrap();
+        assert_eq!(
+            s.get_tx_status(&txid).unwrap(),
+            Some(TxStatus::Succeeded { slot: 7 })
+        );
+        s.set_tx_status(
+            &txid,
+            &TxStatus::Failed {
+                slot: 8,
+                error: "insufficient funds".into(),
+            },
+        )
+        .unwrap();
+        match s.get_tx_status(&txid).unwrap().unwrap() {
+            TxStatus::Failed { slot, error } => {
+                assert_eq!(slot, 8);
+                assert_eq!(error, "insufficient funds");
+            }
+            other => panic!("expected Failed, got {other:?}"),
+        }
         let _ = std::fs::remove_file(&path);
     }
 

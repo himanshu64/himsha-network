@@ -2,6 +2,7 @@ pub mod bitcoin_indexer;
 pub mod block_producer;
 pub mod custody;
 pub mod election;
+pub mod execution;
 pub mod follower;
 pub mod lightning;
 pub mod rpc;

@@ -47,6 +47,13 @@ export interface NodeStats {
   programs: number;
 }
 
+/** Execution status of a submitted transaction (himsha_getSignatureStatus). */
+export interface SignatureStatus {
+  status: 'pending' | 'succeeded' | 'failed';
+  slot?: number | null;
+  error?: string | null;
+}
+
 type SubscriptionId = number;
 type AccountCallback = (info: AccountInfo) => void;
 type SlotCallback    = (slot: bigint)      => void;
@@ -273,22 +280,30 @@ export class HimshaConnection {
   }
 
   /**
-   * Poll until a transaction appears in a block (simple poller).
-   * Returns the slot it was included in.
+   * Execution status of a submitted transaction, or `null` if the node has
+   * never seen the id. Since execution happens at block production (not at
+   * submit time), this is how a client learns the authoritative outcome.
+   */
+  async getSignatureStatus(txId: string): Promise<SignatureStatus | null> {
+    return this.call<SignatureStatus | null>('himsha_getSignatureStatus', [txId]);
+  }
+
+  /**
+   * Poll until a transaction is executed. Resolves with the slot once it
+   * `succeeded`; **rejects with the failure reason** if it `failed` (no more
+   * silent timeouts on a rejected tx); keeps waiting while `pending`.
    */
   async confirmTransaction(txId: string, timeoutMs = 30_000): Promise<bigint> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      const slot = await this.getSlot();
-      // Simple implementation: check the latest block
-      const block = await this.getBlock(slot);
-      if (block) {
-        const found = (block.transactions as Array<{ message: { hash?: string } }>).some(
-          t => t.message?.hash === txId
+      const st = await this.getSignatureStatus(txId);
+      if (st?.status === 'succeeded') return BigInt(st.slot ?? 0);
+      if (st?.status === 'failed') {
+        throw new Error(
+          `Transaction ${txId} failed${st.slot != null ? ` at slot ${st.slot}` : ''}: ${st.error ?? 'unknown error'}`,
         );
-        if (found) return slot;
       }
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 500));
     }
     throw new Error(`Transaction ${txId} not confirmed within ${timeoutMs}ms`);
   }

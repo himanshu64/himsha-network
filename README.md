@@ -61,6 +61,7 @@ toolchain or a Bitcoin regtest node) to exercise end-to-end.
 | **Owner enforcement** | Every write is owner-gated post-execution: a program may only change accounts it owns (plus lamport credits and first-writer claims on blank accounts). Enforced CPI-aware at every invocation boundary, in native dispatch, the zkVM guest, and on deployed-program output. |
 | **CPI depth limit** | Nested cross-program calls bounded (`MAX_CPI_DEPTH = 4`) — no stack-blow DoS. |
 | **Atomic state** | A transaction's account writes commit in a single DB transaction (all-or-nothing). |
+| **Execution timing** | Execution happens at **block production**, not RPC time: `himsha_sendTransaction` validates + preflights (synchronous errors) + queues; the block producer executes each queued tx authoritatively in one deterministic order, including only those that commit. Outcomes are polled via `himsha_getSignatureStatus` (`pending`/`succeeded`/`failed{reason}`). |
 | **ZK receipt binding** | The node persists a state transition only if its receipt commits to exactly the accounts produced (native integrity gate); the zkVM path additionally rejects a guest that returns a different account table than it was given. |
 | **Programs** | system, token, ATA, swap (AMM), lending, money-market (interest-bearing cToken lender shares, kinked rate model, close-factor-bounded liquidation, staleness-gated oracle price), yield vault (lends idle assets via CPI, deposits **and** withdrawals priced off live on-chain NAV, auto-undeploy on withdraw), NFT metadata, runes, oracle (multi-publisher median + per-step deviation bound). |
 
@@ -70,7 +71,6 @@ toolchain or a Bitcoin regtest node) to exercise end-to-end.
 |------|--------|
 | **ZK proving (soundness)** | Native execution is integrity-checked but not cryptographically proven. The verified-receipt path needs the RISC Zero toolchain (`--features zkvm`); `proof_bytes` currently holds the journal, not a re-verifiable STARK seal. |
 | **Compute metering** | CPI depth *and* fan-out width are bounded (per-instruction compute budget charged at every invocation). Arbitrary in-program loops *inside* a single program are still bounded only on the zkVM path (cycle limit), not native dispatch. |
-| **Execution timing** | Per-tx writes are atomic, but execution still happens at RPC time (before block inclusion); moving it to block production remains. |
 | **Bitcoin L1 anchoring** | Each block carries a Merkle `state_root` over the account table (bound into the blockhash); the producer commits it to Bitcoin via OP_RETURN every `HIMSHA_ANCHOR_INTERVAL` blocks, and `himsha_getStateProof` serves inclusion proofs (verifiable client-side — see the TS SDK `verifyAccountInState`). Followers recompute the root after replication and flag divergence. End-to-end OP_RETURN broadcast needs a funded regtest wallet to verify. |
 | **Consensus replication** | Raft *election* safety only — no log replication / commit index; followers re-derive by polling the leader. |
 | **Threshold custody** | FROST/Taproot committee is now *wired into settlement*: set `HIMSHA_THRESHOLD="M/N"` and inscription settlements are threshold-signed via a Taproot key-spend (else single hot wallet). The in-process committee co-locates all shares (educational, not real custody decentralization) and end-to-end Bitcoin acceptance is still unverified without a regtest node funding the committee address (`himsha_getCustodyInfo`). |
@@ -188,6 +188,7 @@ curl -X POST http://localhost:9100 \
 | `himsha_getStats` | — | `{accounts, transactions, tip_slot, programs}` (indexed) |
 | `himsha_getCustodyInfo` | — | `{threshold, total, group_key, address} \| null` (FROST settlement custody; `HIMSHA_THRESHOLD="M/N"`) |
 | `himsha_getStateProof` | `pubkey: String` | `{state_root, leaf, index, siblings[], anchored_*} \| null` (Merkle inclusion proof vs. the Bitcoin-anchored state root) |
+| `himsha_getSignatureStatus` | `txid: String` | `{status, slot?, error?} \| null` (`pending`/`succeeded`/`failed` — execution outcome) |
 
 ⚡ Lightning methods require an LND node configured via `LND_REST_URL` +
 `LND_MACAROON_HEX`; otherwise they return error `-32040` (*lightning not

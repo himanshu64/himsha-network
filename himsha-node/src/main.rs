@@ -9,19 +9,15 @@ use himsha_runtime::{
     transaction::{Block, RuntimeTransaction},
     utxo::UtxoInfo,
 };
-use himsha_vm::{
-    executor::{ExecutionInput, ProgramExecutor},
-    registry::ProgramRegistry,
-};
+use himsha_vm::registry::ProgramRegistry;
 use jsonrpsee::{core::RpcResult, server::Server, types::ErrorObjectOwned};
 use std::{
-    collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 // ---- RPC implementation ----
@@ -54,95 +50,14 @@ struct HimshaNode {
 }
 
 impl HimshaNode {
-    /// Drain the lending program's queued settlements. Repayments to a BOLT-11
-    /// invoice are paid over **Lightning** (instant/cheap) when LND is configured;
-    /// everything else settles on-chain via the Bitcoin indexer. Followers reuse the
-    /// no-payment `settlement::drain_lending` instead.
-    async fn settle_lending(&self, accounts: &mut [AccountInfo], himsha_txid: [u8; 32]) {
-        use himsha_lending_program::{take_settlements, CollectionAccount, SettlementKind};
-        use himsha_node::lightning::{is_invoice, LightningClient};
-
-        let indexer = BitcoinIndexer::from_env();
-        let lightning = LightningClient::from_env();
-
-        for account in accounts.iter_mut() {
-            let mut coll: CollectionAccount = match account.read_data() {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            if coll.pending_settlements.is_empty() {
-                continue;
-            }
-            for s in take_settlements(&mut coll) {
-                // Lightning fast-path: a repayment addressed to a BOLT-11 invoice.
-                if matches!(s.kind, SettlementKind::Repayment) && is_invoice(&s.recipient) {
-                    match &lightning {
-                        Some(ln) => match ln.pay_invoice(&s.recipient).await {
-                            Ok(h) => info!(
-                                "settled {} over Lightning (payment_hash={h})",
-                                s.inscription_id
-                            ),
-                            Err(e) => {
-                                error!("Lightning repayment for {} failed: {e}", s.inscription_id)
-                            }
-                        },
-                        None => info!(
-                            "repayment for {} is a Lightning invoice but LND is not configured",
-                            s.inscription_id
-                        ),
-                    }
-                    continue;
-                }
-                // On-chain settlement for the rest.
-                match &indexer {
-                    Some(ix) => {
-                        let r = match s.kind {
-                            SettlementKind::Repayment => ix.send_payment(&s.recipient, s.amount),
-                            SettlementKind::ReturnInscription
-                            | SettlementKind::SeizeInscription => {
-                                let txid_hex = hex::encode(s.utxo.txid);
-                                // Threshold custody (when configured) signs the UTXO
-                                // move with the FROST committee instead of the hot wallet.
-                                match &self.custody {
-                                    Some(c) => ix.transfer_utxo_committee(
-                                        &c.committee,
-                                        &txid_hex,
-                                        s.utxo.vout,
-                                        &s.recipient,
-                                    ),
-                                    None => ix.transfer_utxo(&txid_hex, s.utxo.vout, &s.recipient),
-                                }
-                            }
-                        };
-                        match r {
-                            Ok(txid) => {
-                                info!(
-                                    "settled {:?} for {} via bitcoin tx {txid}",
-                                    s.kind, s.inscription_id
-                                );
-                                // Index bitcoin_txid -> himsha_txid (settlement lookup).
-                                if let Ok(raw) = hex::decode(&txid) {
-                                    if let Ok(btc) = <[u8; 32]>::try_from(raw.as_slice()) {
-                                        let _ = self.state.index_btc_settlement(&btc, &himsha_txid);
-                                    }
-                                }
-                            }
-                            Err(e) => error!(
-                                "settlement {:?} for {} failed: {e}",
-                                s.kind, s.inscription_id
-                            ),
-                        }
-                    }
-                    None => info!(
-                        "settlement {:?} for {} queued (no Bitcoin RPC)",
-                        s.kind, s.inscription_id
-                    ),
-                }
-            }
-            if account.write_data(&coll).is_err() {
-                error!("failed to clear lending settlements for {}", account.key);
-            }
-        }
+    /// A transaction [`Executor`](himsha_node::execution::Executor) bound to this
+    /// node's state, registry, and settlement custody.
+    fn executor(&self) -> himsha_node::execution::Executor {
+        himsha_node::execution::Executor::new(
+            self.state.clone(),
+            self.registry.clone(),
+            self.custody.clone(),
+        )
     }
 
     /// Hex of the block hash at `slot`, if that block exists.
@@ -211,8 +126,8 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             return Err(ErrorObjectOwned::owned(-32001, reason, None::<()>));
         }
 
-        // 3. Reject a transaction that has already been processed (replay within the
-        //    validity window). Caught for any tx already included in a block.
+        // 3. Reject a replay: a tx already in a block, or one already accepted and
+        //    in flight (Pending/Succeeded). A previously *failed* id may be re-sent.
         let txid = tx.message_hash();
         if self.state.tx_slot(&txid).ok().flatten().is_some() {
             return Err(ErrorObjectOwned::owned(
@@ -221,91 +136,35 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
                 None::<()>,
             ));
         }
+        if matches!(
+            self.state.get_tx_status(&txid).ok().flatten(),
+            Some(himsha_node::state::TxStatus::Pending)
+                | Some(himsha_node::state::TxStatus::Succeeded { .. })
+        ) {
+            return Err(ErrorObjectOwned::owned(
+                -32002,
+                "transaction already submitted",
+                None::<()>,
+            ));
+        }
 
         let tx_id = hex::encode(txid);
 
-        // 4. Execute instructions in order. Each instruction gets exactly the
-        //    accounts it declares, in the declared order — programs index
-        //    `accounts[0]`, `accounts[1]`… positionally, so order matters.
-        //    Accounts that don't exist yet (e.g. a pool being initialized) are
-        //    materialized as empty accounts owned by the invoked program.
-        //
-        //    Writes are staged into an in-memory `overlay` rather than persisted
-        //    per-instruction, so a later instruction sees earlier writes while the
-        //    whole transaction commits atomically (or not at all) at the end.
-        let mut overlay: HashMap<Pubkey, StoredAccount> = HashMap::new();
-        for instr in &tx.message.instructions {
-            let mut accounts: Vec<AccountInfo> = Vec::with_capacity(instr.accounts.len());
-            for meta in &instr.accounts {
-                let mut account = if let Some(stored) = overlay.get(&meta.pubkey) {
-                    stored.clone().into_account(meta.pubkey)
-                } else if let Ok(Some(stored)) = self.state.load_account(&meta.pubkey) {
-                    stored.into_account(meta.pubkey)
-                } else {
-                    AccountInfo::new(meta.pubkey, instr.program_id, 0, 0)
-                };
-                // Propagate the signer flag so programs can enforce authority. The
-                // per-signer Schnorr verification above is the node's cryptographic gate.
-                account.is_signer = meta.is_signer;
-                // Propagate writability so a program can't mutate an account the
-                // instruction declared read-only (enforced by AccountInfo::write_data).
-                account.is_writable = meta.is_writable;
-                accounts.push(account);
-            }
+        // 4. Preflight: dry-run the transaction against current state to surface
+        //    deterministic errors (bad signature aside — checked above) to the
+        //    caller synchronously. Preflight never persists or settles; the block
+        //    producer is the authoritative execution point.
+        self.executor()
+            .apply(&tx, himsha_node::execution::Mode::Preflight)
+            .await
+            .map_err(|e| ErrorObjectOwned::owned(e.code, e.message, None::<()>))?;
 
-            let input = ExecutionInput {
-                accounts,
-                instruction_data: instr.data.clone(),
-                timestamp: tx.message.timestamp,
-            };
-
-            // Execute in a scope so the (non-Send) registry guard is dropped before
-            // any `.await` (settlement may pay over Lightning asynchronously).
-            let result = {
-                let registry_guard = self.registry.lock().unwrap();
-                let executor = ProgramExecutor::new(&registry_guard);
-                executor.execute_program(&instr.program_id, input, vec![])
-            };
-
-            match result {
-                Ok(mut transition) => {
-                    // Gate on the execution receipt: it must commit to exactly the
-                    // accounts the program produced before any of them are persisted.
-                    transition.verify().map_err(|reason| {
-                        ErrorObjectOwned::owned(
-                            -32004,
-                            format!("invalid execution receipt: {reason}"),
-                            None::<()>,
-                        )
-                    })?;
-
-                    // Settle Ordinals loans: drain the lending program's queued
-                    // settlements (return/seize inscription, pay lender) and move
-                    // the UTXOs on Bitcoin. The cleared collection is then persisted.
-                    if instr.program_id == himsha_runtime::program_ids::lending_program() {
-                        self.settle_lending(&mut transition.updated_accounts, tx.message_hash())
-                            .await;
-                    }
-
-                    // Stage updated accounts into the overlay (not yet persisted).
-                    for account in &transition.updated_accounts {
-                        overlay.insert(account.key, StoredAccount::from(account));
-                    }
-                }
-                Err(e) => {
-                    // Abort the whole transaction; the overlay is dropped, so nothing
-                    // from any instruction is persisted (atomic rollback).
-                    return Err(ErrorObjectOwned::owned(-32002, e.to_string(), None::<()>));
-                }
-            }
-        }
-
-        // 5. Commit every account the transaction touched in one write transaction.
-        self.state
-            .save_accounts_atomic(&overlay)
-            .map_err(|e| ErrorObjectOwned::owned(-32001, e.to_string(), None::<()>))?;
-
-        // 6. Queue for block inclusion
+        // 5. Accept: mark Pending and queue for block inclusion. The producer
+        //    executes it authoritatively and flips the status to Succeeded
+        //    (with the slot) or Failed (with the reason) — poll getSignatureStatus.
+        let _ = self
+            .state
+            .set_tx_status(&txid, &himsha_node::state::TxStatus::Pending);
         let _ = self.pending_tx.send(tx).await;
         Ok(tx_id)
     }
@@ -665,6 +524,40 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             anchored_btc_txid: anchor.map(|a| a.btc_txid),
         }))
     }
+
+    async fn get_signature_status(
+        &self,
+        txid: String,
+    ) -> RpcResult<Option<himsha_node::rpc::SignatureStatus>> {
+        use himsha_node::state::TxStatus;
+        let raw = hex::decode(&txid)
+            .map_err(|e| ErrorObjectOwned::owned(-32003, e.to_string(), None::<()>))?;
+        let id: [u8; 32] = raw
+            .as_slice()
+            .try_into()
+            .map_err(|_| ErrorObjectOwned::owned(-32003, "txid must be 32 bytes", None::<()>))?;
+        let status = self
+            .state
+            .get_tx_status(&id)
+            .map_err(|e| ErrorObjectOwned::owned(-32057, e.to_string(), None::<()>))?;
+        Ok(status.map(|s| match s {
+            TxStatus::Pending => himsha_node::rpc::SignatureStatus {
+                status: "pending".into(),
+                slot: None,
+                error: None,
+            },
+            TxStatus::Succeeded { slot } => himsha_node::rpc::SignatureStatus {
+                status: "succeeded".into(),
+                slot: Some(slot),
+                error: None,
+            },
+            TxStatus::Failed { slot, error } => himsha_node::rpc::SignatureStatus {
+                status: "failed".into(),
+                slot: Some(slot),
+                error: Some(error),
+            },
+        }))
+    }
 }
 
 /// Resolve the configured Lightning client or a clear "not configured" error.
@@ -786,6 +679,10 @@ async fn main() -> Result<()> {
             let f_reg = registry.clone();
             let f_election = election.clone();
             let f_self = self_id.clone();
+            // Separate handles for the executor used after a failover promotion
+            // (`f_reg` is moved into the Follower).
+            let f_reg_exec = registry.clone();
+            let f_custody = custody.clone();
             tokio::spawn(async move {
                 let follower =
                     himsha_node::follower::Follower::new(f_state.clone(), f_reg, primary_url)
@@ -796,7 +693,12 @@ async fn main() -> Result<()> {
                     .await;
                 if promote {
                     info!("FAILOVER: promoted to sequencer — block production enabled");
-                    himsha_node::block_producer::BlockProducer::new(f_state, pending_rx)
+                    let executor = himsha_node::execution::Executor::new(
+                        f_state.clone(),
+                        f_reg_exec,
+                        f_custody,
+                    );
+                    himsha_node::block_producer::BlockProducer::new(f_state, pending_rx, executor)
                         .run()
                         .await;
                 }
@@ -810,8 +712,15 @@ async fn main() -> Result<()> {
             // Primary: it is the leader; advertise via GetLeader, collect txs, produce blocks.
             election.lock().unwrap().become_leader(&self_id);
             let state_clone = state.clone();
+            let executor = himsha_node::execution::Executor::new(
+                state.clone(),
+                registry.clone(),
+                custody.clone(),
+            );
             tokio::spawn(async move {
-                BlockProducer::new(state_clone, pending_rx).run().await;
+                BlockProducer::new(state_clone, pending_rx, executor)
+                    .run()
+                    .await;
             });
         }
     }
