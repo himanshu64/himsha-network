@@ -178,6 +178,35 @@ impl BitcoinIndexer {
         Ok(txid.to_string())
     }
 
+    /// Move one UTXO to `recipient` via a **threshold-signed** Taproot key-spend
+    /// instead of the hot wallet: looks up the UTXO's value, has the FROST
+    /// committee sign the BIP-341 sighash, and broadcasts the result. The UTXO
+    /// must be owned by the committee's group key for the spend to verify (see
+    /// [`crate::settlement_tx`] for the regtest caveat).
+    pub fn transfer_utxo_committee(
+        &self,
+        committee: &himsha_threshold::taproot::TaprootCommittee,
+        txid: &str,
+        vout: u32,
+        recipient: &str,
+    ) -> Result<String> {
+        const FEE_SATS: u64 = 500;
+        let value = self
+            .get_utxo(txid, vout)?
+            .ok_or_else(|| anyhow!("utxo {txid}:{vout} not found or already spent"))?
+            .value;
+        let signed_hex = crate::settlement_tx::settle_with_committee(
+            committee,
+            txid,
+            vout,
+            value,
+            recipient,
+            FEE_SATS,
+            self.network,
+        )?;
+        self.broadcast(&signed_hex)
+    }
+
     pub async fn get_inscription(&self, inscription_id: &str) -> Option<InscriptionInfo> {
         let base = self.mempool_space_url.as_deref()?;
         let url = format!("{base}/api/v1/inscription/{inscription_id}");

@@ -2,6 +2,7 @@
 name    = "himsha-threshold"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "FROST threshold Schnorr signing committee for the HIMSHA Bitcoin settlement key (M-of-N, no single signer)"
 
 [dependencies]

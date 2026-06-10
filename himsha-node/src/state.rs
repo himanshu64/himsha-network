@@ -263,15 +263,18 @@ impl NodeState {
 
     pub fn get_utxo_anchor(&self, key: &Pubkey) -> Result<Option<UtxoMeta>> {
         let bytes = Self::read_bytes(&self.db, UTXO_ANCHORS, key.as_ref())?;
-        Ok(bytes.map(|b| UtxoMeta::try_from_slice(&b).expect("utxo decode")))
+        bytes
+            .map(|b| UtxoMeta::try_from_slice(&b).map_err(Into::into))
+            .transpose()
     }
 
     // ---- blocks / slots ----
 
-    pub fn current_slot(&self) -> u64 {
-        let rtx = self.db.begin_read().unwrap();
-        let tbl = rtx.open_table(META).unwrap();
-        tbl.get("slot").unwrap().map(|ag| ag.value()).unwrap_or(0)
+    pub fn current_slot(&self) -> Result<u64> {
+        let rtx = self.db.begin_read()?;
+        let tbl = rtx.open_table(META)?;
+        let slot = tbl.get("slot")?.map(|ag| ag.value()).unwrap_or(0);
+        Ok(slot)
     }
 
     pub fn advance_slot(&self) -> Result<u64> {
@@ -353,7 +356,7 @@ impl NodeState {
     /// hashes have aged out and are rejected; the genesis block (slot 0) is included
     /// while the chain is younger than `max_age` blocks.
     pub fn recent_blockhashes(&self, max_age: u64) -> Result<std::collections::HashSet<[u8; 32]>> {
-        let tip = self.current_slot();
+        let tip = self.current_slot()?;
         let mut set = std::collections::HashSet::new();
         for slot in tip.saturating_sub(max_age)..=tip {
             if let Some(bytes) = self.load_block(slot)? {

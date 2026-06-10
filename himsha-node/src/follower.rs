@@ -255,7 +255,7 @@ impl Follower {
     /// Catch up from the local slot to the primary's tip.
     pub async fn sync_once(&self) -> Result<()> {
         let target = self.rpc_u64("himsha_getSlot").await?;
-        let mut local = self.state.current_slot();
+        let mut local = self.state.current_slot()?;
         while local < target {
             let next = local + 1;
             match self.fetch_block(next).await? {
@@ -287,7 +287,7 @@ impl Follower {
             let _ = self.state.index_transaction(&tx.message_hash(), block.slot);
         }
         // Advance the local slot to match (slots are sequential).
-        while self.state.current_slot() < block.slot {
+        while self.state.current_slot()? < block.slot {
             self.state
                 .advance_slot()
                 .map_err(|e| anyhow!("advance_slot: {e}"))?;
@@ -493,7 +493,7 @@ mod tests {
         let to_after = state.load_account(&to).unwrap().unwrap();
         assert_eq!(from_after.lamports, 750);
         assert_eq!(to_after.lamports, 250);
-        assert_eq!(state.current_slot(), 1);
+        assert_eq!(state.current_slot().unwrap(), 1);
 
         let _ = &mut from_acc;
         let _ = std::fs::remove_file(&path);

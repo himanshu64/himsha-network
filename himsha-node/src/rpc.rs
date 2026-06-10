@@ -170,6 +170,25 @@ pub trait HimshaRpc {
     /// Aggregate chain stats for the explorer overview (indexed counters, no scans).
     #[method(name = "himsha_getStats")]
     async fn get_stats(&self) -> RpcResult<NodeStats>;
+
+    /// Threshold-custody status: the M-of-N config, the committee group key, and
+    /// the Taproot address to fund so the committee can key-spend settlements.
+    /// Returns `null` when `HIMSHA_THRESHOLD` is unset (single-hot-wallet mode).
+    #[method(name = "himsha_getCustodyInfo")]
+    async fn get_custody_info(&self) -> RpcResult<Option<CustodyInfo>>;
+}
+
+/// Threshold-custody settlement configuration (see [`crate::custody`]).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CustodyInfo {
+    /// Signatures required to settle.
+    pub threshold: u16,
+    /// Total committee members.
+    pub total: u16,
+    /// 32-byte x-only group key (hex) — the Taproot output key.
+    pub group_key: String,
+    /// P2TR address controlled by the committee; fund this to give it custody.
+    pub address: String,
 }
 
 /// Indexed counters for the explorer overview.

@@ -48,6 +48,9 @@ struct HimshaNode {
     election: Arc<Mutex<himsha_node::election::ElectionState>>,
     /// Network this node accepts transactions for (see [`chain_id_for_network`]).
     chain_id: u64,
+    /// FROST/Taproot settlement custody, when `HIMSHA_THRESHOLD` is configured;
+    /// `None` falls back to single-hot-wallet settlement.
+    custody: Option<Arc<himsha_node::custody::Custody>>,
 }
 
 impl HimshaNode {
@@ -96,11 +99,20 @@ impl HimshaNode {
                         let r = match s.kind {
                             SettlementKind::Repayment => ix.send_payment(&s.recipient, s.amount),
                             SettlementKind::ReturnInscription
-                            | SettlementKind::SeizeInscription => ix.transfer_utxo(
-                                &hex::encode(s.utxo.txid),
-                                s.utxo.vout,
-                                &s.recipient,
-                            ),
+                            | SettlementKind::SeizeInscription => {
+                                let txid_hex = hex::encode(s.utxo.txid);
+                                // Threshold custody (when configured) signs the UTXO
+                                // move with the FROST committee instead of the hot wallet.
+                                match &self.custody {
+                                    Some(c) => ix.transfer_utxo_committee(
+                                        &c.committee,
+                                        &txid_hex,
+                                        s.utxo.vout,
+                                        &s.recipient,
+                                    ),
+                                    None => ix.transfer_utxo(&txid_hex, s.utxo.vout, &s.recipient),
+                                }
+                            }
                         };
                         match r {
                             Ok(txid) => {
@@ -348,7 +360,9 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
     }
 
     async fn get_slot(&self) -> RpcResult<u64> {
-        Ok(self.state.current_slot())
+        self.state
+            .current_slot()
+            .map_err(|e| ErrorObjectOwned::owned(-32008, e.to_string(), None::<()>))
     }
 
     async fn is_node_ready(&self) -> RpcResult<bool> {
@@ -481,7 +495,10 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
 
     async fn recent_transactions(&self, limit: u32) -> RpcResult<Vec<RuntimeTransaction>> {
         let mut out = Vec::new();
-        let tip = self.state.current_slot();
+        let tip = self
+            .state
+            .current_slot()
+            .map_err(|e| ErrorObjectOwned::owned(-32008, e.to_string(), None::<()>))?;
         let mut slot = tip;
         let floor = tip.saturating_sub(1024);
         while slot > floor && (out.len() as u32) < limit {
@@ -518,7 +535,11 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
     }
 
     async fn get_best_block_hash(&self) -> RpcResult<Option<String>> {
-        Ok(self.block_hash_hex(self.state.current_slot()))
+        let tip = self
+            .state
+            .current_slot()
+            .map_err(|e| ErrorObjectOwned::owned(-32008, e.to_string(), None::<()>))?;
+        Ok(self.block_hash_hex(tip))
     }
 
     async fn get_network_pubkey(&self) -> RpcResult<String> {
@@ -600,6 +621,22 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             programs,
         })
     }
+
+    async fn get_custody_info(&self) -> RpcResult<Option<himsha_node::rpc::CustodyInfo>> {
+        let Some(custody) = &self.custody else {
+            return Ok(None); // single-hot-wallet mode
+        };
+        let group_xonly = custody.group_xonly();
+        let address =
+            himsha_node::settlement_tx::committee_address(&group_xonly, bitcoin_network())
+                .map_err(|e| ErrorObjectOwned::owned(-32055, e.to_string(), None::<()>))?;
+        Ok(Some(himsha_node::rpc::CustodyInfo {
+            threshold: custody.threshold,
+            total: custody.total,
+            group_key: hex::encode(group_xonly),
+            address: address.to_string(),
+        }))
+    }
 }
 
 /// Resolve the configured Lightning client or a clear "not configured" error.
@@ -673,6 +710,10 @@ async fn main() -> Result<()> {
     }
 
     let (pending_tx, pending_rx) = mpsc::channel(4096);
+
+    // Threshold settlement custody (HIMSHA_THRESHOLD="M/N"), generated once at
+    // startup so settlement reuses one committee rather than re-keying per tx.
+    let custody = himsha_node::custody::Custody::from_env().map(Arc::new);
 
     // Shared leader-election state (terms + per-term vote + leader view), used by the
     // RequestVote / GetLeader RPCs and a candidate follower.
@@ -782,6 +823,7 @@ async fn main() -> Result<()> {
         pending_tx,
         election: election.clone(),
         chain_id,
+        custody: custody.clone(),
     };
 
     let cors = CorsLayer::new()

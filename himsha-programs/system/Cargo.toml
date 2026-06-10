@@ -2,6 +2,7 @@
 name    = "himsha-system-program"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "HIMSHA system program — creates accounts, transfers lamports, assigns ownership"
 
 [dependencies]

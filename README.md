@@ -58,22 +58,22 @@ toolchain or a Bitcoin regtest node) to exercise end-to-end.
 | **Transaction signatures** | BIP-340 Schnorr (secp256k1); the node rejects unsigned, forged, or tampered transactions at ingestion. |
 | **Replay protection** | Signed `recent_blockhash` + `chain_id`, recent-window expiry, and txid de-duplication. |
 | **Writable enforcement** | `write_data` refuses to mutate an account an instruction declared read-only. |
+| **Owner enforcement** | Every write is owner-gated post-execution: a program may only change accounts it owns (plus lamport credits and first-writer claims on blank accounts). Enforced CPI-aware at every invocation boundary, in native dispatch, the zkVM guest, and on deployed-program output. |
 | **CPI depth limit** | Nested cross-program calls bounded (`MAX_CPI_DEPTH = 4`) — no stack-blow DoS. |
 | **Atomic state** | A transaction's account writes commit in a single DB transaction (all-or-nothing). |
-| **ZK receipt binding** | The node persists a state transition only if its receipt commits to exactly the accounts produced (native integrity gate). |
-| **Programs** | system, token, ATA, swap (AMM), lending, money-market (interest-bearing cToken lender shares), yield vault (lends idle assets via CPI, NAV from share price, auto-undeploy on withdraw), NFT metadata, runes, oracle. |
+| **ZK receipt binding** | The node persists a state transition only if its receipt commits to exactly the accounts produced (native integrity gate); the zkVM path additionally rejects a guest that returns a different account table than it was given. |
+| **Programs** | system, token, ATA, swap (AMM), lending, money-market (interest-bearing cToken lender shares, kinked rate model, close-factor-bounded liquidation, staleness-gated oracle price), yield vault (lends idle assets via CPI, deposits **and** withdrawals priced off live on-chain NAV, auto-undeploy on withdraw), NFT metadata, runes, oracle (multi-publisher median + per-step deviation bound). |
 
 ### 🧪 Under testing / partial
 
 | Area | Status |
 |------|--------|
 | **ZK proving (soundness)** | Native execution is integrity-checked but not cryptographically proven. The verified-receipt path needs the RISC Zero toolchain (`--features zkvm`); `proof_bytes` currently holds the journal, not a re-verifiable STARK seal. |
-| **Account owner enforcement** | Writability is enforced; "only the owning program may write" needs the program id threaded through every program (not yet done). |
-| **Compute metering** | CPI depth is bounded; arbitrary in-program loops/compute are bounded only on the zkVM path (cycle limit), not native dispatch. |
+| **Compute metering** | CPI depth *and* fan-out width are bounded (per-instruction compute budget charged at every invocation). Arbitrary in-program loops *inside* a single program are still bounded only on the zkVM path (cycle limit), not native dispatch. |
 | **Execution timing** | Per-tx writes are atomic, but execution still happens at RPC time (before block inclusion); moving it to block production remains. |
 | **Bitcoin L1 anchoring** | No commitment of block/state roots to Bitcoin yet. |
 | **Consensus replication** | Raft *election* safety only — no log replication / commit index; followers re-derive by polling the leader. |
-| **Threshold custody** | FROST/Taproot committee settlement code exists but isn't wired; live settlement uses a single hot wallet. Needs regtest to verify. |
+| **Threshold custody** | FROST/Taproot committee is now *wired into settlement*: set `HIMSHA_THRESHOLD="M/N"` and inscription settlements are threshold-signed via a Taproot key-spend (else single hot wallet). The in-process committee co-locates all shares (educational, not real custody decentralization) and end-to-end Bitcoin acceptance is still unverified without a regtest node funding the committee address (`himsha_getCustodyInfo`). |
 | **Lightning** | Requires an external LND node; unverified without one. |
 
 > See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and the root disclaimer — this is an
@@ -101,7 +101,7 @@ toolchain or a Bitcoin regtest node) to exercise end-to-end.
 
 ### Prerequisites
 
-- Rust 1.75+
+- Rust 1.87+ (workspace MSRV, gated in CI)
 - Bitcoin Core (regtest for local dev)
 - RISC Zero toolchain: `cargo install cargo-risczero && cargo risczero install`
 
@@ -186,6 +186,7 @@ curl -X POST http://localhost:9100 \
 | `himsha_getAllAccounts` | `limit` | `AccountInfo[]` (0 = all) |
 | `himsha_getTxidFromBtcTxid` | `btc_txid` | HIMSHA txid \| null (settlement lookup) |
 | `himsha_getStats` | — | `{accounts, transactions, tip_slot, programs}` (indexed) |
+| `himsha_getCustodyInfo` | — | `{threshold, total, group_key, address} \| null` (FROST settlement custody; `HIMSHA_THRESHOLD="M/N"`) |
 
 ⚡ Lightning methods require an LND node configured via `LND_REST_URL` +
 `LND_MACAROON_HEX`; otherwise they return error `-32040` (*lightning not
