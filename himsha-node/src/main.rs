@@ -637,6 +637,34 @@ impl himsha_node::rpc::HimshaRpcServer for HimshaNode {
             address: address.to_string(),
         }))
     }
+
+    async fn get_state_proof(
+        &self,
+        pubkey: String,
+    ) -> RpcResult<Option<himsha_node::rpc::StateProof>> {
+        let key = Pubkey::from_base58(&pubkey)
+            .map_err(|e| ErrorObjectOwned::owned(-32003, e, None::<()>))?;
+        let Some((proof, root)) = self
+            .state
+            .state_proof(&key)
+            .map_err(|e| ErrorObjectOwned::owned(-32056, e.to_string(), None::<()>))?
+        else {
+            return Ok(None);
+        };
+        let anchor = self
+            .state
+            .latest_anchor()
+            .map_err(|e| ErrorObjectOwned::owned(-32056, e.to_string(), None::<()>))?;
+        Ok(Some(himsha_node::rpc::StateProof {
+            state_root: hex::encode(root),
+            leaf: hex::encode(proof.leaf),
+            index: proof.index,
+            siblings: proof.siblings.iter().map(hex::encode).collect(),
+            anchored_slot: anchor.as_ref().map(|a| a.slot),
+            anchored_state_root: anchor.as_ref().map(|a| hex::encode(a.state_root)),
+            anchored_btc_txid: anchor.map(|a| a.btc_txid),
+        }))
+    }
 }
 
 /// Resolve the configured Lightning client or a clear "not configured" error.

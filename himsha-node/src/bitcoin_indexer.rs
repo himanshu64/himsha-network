@@ -1,5 +1,8 @@
 use anyhow::{anyhow, Result};
-use bitcoin::{Address, Amount, Txid};
+use bitcoin::{
+    absolute::LockTime, consensus::encode::serialize_hex, script::PushBytesBuf,
+    transaction::Version, Address, Amount, ScriptBuf, Transaction, TxOut, Txid,
+};
 use bitcoincore_rpc::{json, Auth, Client, RpcApi};
 use himsha_runtime::utxo::{UtxoInfo, UtxoMeta};
 use serde::{Deserialize, Serialize};
@@ -207,6 +210,36 @@ impl BitcoinIndexer {
         self.broadcast(&signed_hex)
     }
 
+    /// Commit a HIMSHA state root to Bitcoin in an OP_RETURN output: builds a
+    /// data-carrier transaction, funds it from the node wallet (inputs + change +
+    /// fee), signs, and broadcasts. Returns the anchoring txid. The committed
+    /// payload is [`anchor_payload`] — a magic tag, the slot, and the 32-byte
+    /// root, well within Bitcoin's 80-byte OP_RETURN standardness limit.
+    pub fn anchor_state_root(&self, slot: u64, root: &[u8; 32]) -> Result<String> {
+        let payload = anchor_payload(slot, root);
+        let tx = Transaction {
+            version: Version::TWO,
+            lock_time: LockTime::ZERO,
+            input: vec![],
+            output: vec![TxOut {
+                value: Amount::from_sat(0),
+                script_pubkey: op_return_script(&payload)?,
+            }],
+        };
+        let funded = self
+            .rpc
+            .fund_raw_transaction(serialize_hex(&tx).as_str(), None, None)?;
+        let signed =
+            self.rpc
+                .sign_raw_transaction_with_wallet(funded.hex.as_slice(), None, None)?;
+        if !signed.complete {
+            return Err(anyhow!("wallet could not sign the state-root anchor tx"));
+        }
+        let txid = self.rpc.send_raw_transaction(signed.hex.as_slice())?;
+        info!("anchored state root for slot {slot} in bitcoin tx {txid}");
+        Ok(txid.to_string())
+    }
+
     pub async fn get_inscription(&self, inscription_id: &str) -> Option<InscriptionInfo> {
         let base = self.mempool_space_url.as_deref()?;
         let url = format!("{base}/api/v1/inscription/{inscription_id}");
@@ -277,6 +310,35 @@ impl BitcoinIndexer {
     }
 }
 
+/// 4-byte magic + version identifying a HIMSHA state-root anchor in an OP_RETURN.
+pub const ANCHOR_MAGIC: &[u8; 4] = b"HMS1";
+
+/// The OP_RETURN payload committing a state root: `magic ‖ slot_le ‖ root` (44 B).
+pub fn anchor_payload(slot: u64, root: &[u8; 32]) -> Vec<u8> {
+    let mut v = Vec::with_capacity(ANCHOR_MAGIC.len() + 8 + 32);
+    v.extend_from_slice(ANCHOR_MAGIC);
+    v.extend_from_slice(&slot.to_le_bytes());
+    v.extend_from_slice(root);
+    v
+}
+
+/// Parse an OP_RETURN payload back into `(slot, root)` if it is a HIMSHA anchor.
+pub fn parse_anchor_payload(payload: &[u8]) -> Option<(u64, [u8; 32])> {
+    if payload.len() != ANCHOR_MAGIC.len() + 8 + 32 || &payload[..4] != ANCHOR_MAGIC {
+        return None;
+    }
+    let slot = u64::from_le_bytes(payload[4..12].try_into().ok()?);
+    let root: [u8; 32] = payload[12..44].try_into().ok()?;
+    Some((slot, root))
+}
+
+/// Build the `OP_RETURN <payload>` scriptPubKey for an anchor output.
+pub fn op_return_script(payload: &[u8]) -> Result<ScriptBuf> {
+    let pb =
+        PushBytesBuf::try_from(payload.to_vec()).map_err(|e| anyhow!("op_return payload: {e}"))?;
+    Ok(ScriptBuf::new_op_return(pb))
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InscriptionInfo {
     pub id: String,
@@ -286,4 +348,33 @@ pub struct InscriptionInfo {
     pub sat: Option<u64>,
     pub output: Option<String>,
     pub offset: Option<u64>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anchor_payload_roundtrips() {
+        let root = [7u8; 32];
+        let payload = anchor_payload(42, &root);
+        assert_eq!(payload.len(), 44);
+        assert_eq!(parse_anchor_payload(&payload), Some((42, root)));
+    }
+
+    #[test]
+    fn parse_rejects_foreign_payloads() {
+        assert_eq!(parse_anchor_payload(b"not an anchor"), None);
+        let mut bad = anchor_payload(1, &[0u8; 32]);
+        bad[0] ^= 0xff; // corrupt the magic
+        assert_eq!(parse_anchor_payload(&bad), None);
+    }
+
+    #[test]
+    fn op_return_script_is_a_data_carrier() {
+        let spk = op_return_script(&anchor_payload(9, &[1u8; 32])).unwrap();
+        assert!(spk.is_op_return());
+        // OP_RETURN + push opcode/len + 44-byte payload stays within standardness.
+        assert!(spk.len() <= 83);
+    }
 }

@@ -166,9 +166,15 @@ pub struct Block {
     pub slot: u64,
     pub parent_slot: u64,
     pub transactions: Vec<RuntimeTransaction>,
-    /// SHA-256 of (slot || all message hashes).
+    /// SHA-256 of (slot || all message hashes || state_root).
     pub blockhash: [u8; 32],
     pub timestamp: u64,
+    /// Merkle root over the full account state as of this block (see
+    /// [`crate::merkle`]). A periodic OP_RETURN commits this root to Bitcoin,
+    /// and `himsha_getStateProof` serves inclusion proofs against it. Defaults
+    /// to the empty root for blocks produced before state-root support.
+    #[serde(default)]
+    pub state_root: [u8; 32],
 }
 
 impl Block {
@@ -178,17 +184,32 @@ impl Block {
         transactions: Vec<RuntimeTransaction>,
         timestamp: u64,
     ) -> Self {
+        Self::new_with_root(slot, parent_slot, transactions, timestamp, [0u8; 32])
+    }
+
+    /// Construct a block committing to `state_root` — the Merkle root of the
+    /// account state after this block's transactions are applied. The root is
+    /// folded into `blockhash`, binding the committed state into the chain.
+    pub fn new_with_root(
+        slot: u64,
+        parent_slot: u64,
+        transactions: Vec<RuntimeTransaction>,
+        timestamp: u64,
+        state_root: [u8; 32],
+    ) -> Self {
         let mut h = Sha256::new();
         h.update(slot.to_le_bytes());
         for tx in &transactions {
             h.update(tx.message_hash());
         }
+        h.update(state_root);
         Self {
             slot,
             parent_slot,
             transactions,
             blockhash: h.finalize().into(),
             timestamp,
+            state_root,
         }
     }
 }

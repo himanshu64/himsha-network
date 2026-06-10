@@ -25,7 +25,7 @@ use himsha_vm::{
     registry::ProgramRegistry,
 };
 use serde_json::json;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::{settlement, state::NodeState};
 
@@ -278,6 +278,24 @@ impl Follower {
     pub fn apply_block(&self, block: &Block) -> Result<()> {
         for tx in &block.transactions {
             self.apply_transaction(tx, block.timestamp)?;
+        }
+        // Trust-minimized replication: after re-executing the block ourselves, our
+        // independently-computed state root must match the one the primary
+        // committed (and anchored to Bitcoin). A mismatch means our replicated
+        // state has diverged — surface it loudly rather than silently drift.
+        if block.state_root != [0u8; 32] {
+            match self.state.compute_state_root() {
+                Ok(local) if local != block.state_root => {
+                    error!(
+                        "STATE ROOT DIVERGENCE at slot {}: local={} primary={}",
+                        block.slot,
+                        hex::encode(local),
+                        hex::encode(block.state_root)
+                    );
+                }
+                Ok(_) => {}
+                Err(e) => error!("compute_state_root at slot {}: {e}", block.slot),
+            }
         }
         self.state
             .save_block(block.slot, serde_json::to_vec(block)?)

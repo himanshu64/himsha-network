@@ -1,7 +1,8 @@
 use anyhow::Result;
-use borsh::BorshDeserialize;
+use borsh::{BorshDeserialize, BorshSerialize};
 use himsha_runtime::{
     account::{AccountInfo, StoredAccount},
+    merkle::{self, MerkleProof},
     pubkey::Pubkey,
     utxo::UtxoMeta,
 };
@@ -23,6 +24,19 @@ const OWNER_IDX: TableDefinition<&[u8], &[u8]> = TableDefinition::new("owner_idx
 const TX_IDX: TableDefinition<&[u8], u64> = TableDefinition::new("tx_idx");
 // bitcoin_txid(32) -> himsha_txid(32) : map a settlement's on-chain txid back to its L2 tx
 const BTC_TX_IDX: TableDefinition<&[u8], &[u8]> = TableDefinition::new("btc_tx_idx");
+// slot -> borsh(AnchorRecord) : state roots committed to Bitcoin via OP_RETURN
+const ANCHORS: TableDefinition<u64, &[u8]> = TableDefinition::new("anchors");
+// META key holding the highest anchored slot (so `latest_anchor` is O(1)).
+const ANCHOR_TIP_KEY: &str = "anchor_tip_slot";
+
+/// A state root committed to Bitcoin: the HIMSHA slot it reflects, the Merkle
+/// root over account state at that slot, and the OP_RETURN transaction's txid.
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+pub struct AnchorRecord {
+    pub slot: u64,
+    pub state_root: [u8; 32],
+    pub btc_txid: String,
+}
 
 /// Thread-safe node state.  `redb::Database` is `Send + Sync`.
 #[derive(Clone)]
@@ -43,6 +57,7 @@ impl NodeState {
         w.open_table(OWNER_IDX)?;
         w.open_table(TX_IDX)?;
         w.open_table(BTC_TX_IDX)?;
+        w.open_table(ANCHORS)?;
         w.commit()?;
         let s = Self { db: Arc::new(db) };
         s.backfill_owner_index()?; // migrate pre-index DBs (no-op when already built)
@@ -219,6 +234,79 @@ impl NodeState {
             }
         }
         Ok(out)
+    }
+
+    // ---- state root & inclusion proofs (Bitcoin L1 anchoring) ----
+
+    /// Collect every account's `(key, leaf_hash)` in ascending key order — the
+    /// canonical leaf set the state root and inclusion proofs are built over.
+    fn state_leaves(&self) -> Result<Vec<([u8; 32], [u8; 32])>> {
+        let rtx = self.db.begin_read()?;
+        let table = rtx.open_table(ACCOUNTS)?;
+        let mut leaves = Vec::new();
+        for entry in table.iter()? {
+            let (k, v) = entry?;
+            let mut key = [0u8; 32];
+            key.copy_from_slice(k.value());
+            leaves.push((key, merkle::leaf_hash(&key, v.value())));
+        }
+        Ok(leaves)
+    }
+
+    /// Merkle root over the full account state (deterministic; empty → zero).
+    pub fn compute_state_root(&self) -> Result<[u8; 32]> {
+        let hashes: Vec<[u8; 32]> = self.state_leaves()?.into_iter().map(|(_, h)| h).collect();
+        Ok(merkle::merkle_root(&hashes))
+    }
+
+    /// An inclusion proof that `key`'s account is committed in the current state
+    /// root, plus that root. `None` if the account does not exist.
+    pub fn state_proof(&self, key: &Pubkey) -> Result<Option<(MerkleProof, [u8; 32])>> {
+        let leaves = self.state_leaves()?;
+        let hashes: Vec<[u8; 32]> = leaves.iter().map(|(_, h)| *h).collect();
+        let root = merkle::merkle_root(&hashes);
+        match leaves.iter().position(|(k, _)| k == key.as_ref()) {
+            Some(idx) => Ok(merkle::build_proof(&hashes, idx).map(|p| (p, root))),
+            None => Ok(None),
+        }
+    }
+
+    /// Record a state root committed to Bitcoin, advancing the anchor tip.
+    pub fn record_anchor(&self, slot: u64, state_root: [u8; 32], btc_txid: &str) -> Result<()> {
+        let rec = AnchorRecord {
+            slot,
+            state_root,
+            btc_txid: btc_txid.to_string(),
+        };
+        let bytes = borsh::to_vec(&rec)?;
+        let w = self.db.begin_write()?;
+        {
+            let mut t = w.open_table(ANCHORS)?;
+            t.insert(slot, bytes.as_slice())?;
+            let mut m = w.open_table(META)?;
+            let cur = m.get(ANCHOR_TIP_KEY)?.map(|v| v.value()).unwrap_or(0);
+            if slot >= cur {
+                m.insert(ANCHOR_TIP_KEY, slot)?;
+            }
+        }
+        w.commit()?;
+        Ok(())
+    }
+
+    /// The most recently anchored state root, if any.
+    pub fn latest_anchor(&self) -> Result<Option<AnchorRecord>> {
+        let rtx = self.db.begin_read()?;
+        let meta = rtx.open_table(META)?;
+        let tip = meta.get(ANCHOR_TIP_KEY)?.map(|v| v.value());
+        let Some(tip) = tip else {
+            return Ok(None);
+        };
+        let anchors = rtx.open_table(ANCHORS)?;
+        let bytes = anchors.get(tip)?.map(|v| v.value().to_vec());
+        match bytes {
+            Some(b) => Ok(Some(AnchorRecord::try_from_slice(&b)?)),
+            None => Ok(None),
+        }
     }
 
     // ---- programs ----
@@ -472,6 +560,64 @@ mod tests {
         assert!(a.iter().all(|x| x.owner == prog_a));
         assert_eq!(s.accounts_by_owner(&prog_b).unwrap().len(), 1);
         assert_eq!(s.all_accounts(0).unwrap().len(), 3);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_state_root_and_inclusion_proof() {
+        let (s, path) = tmp_state("stateroot");
+        // Empty state → zero root, no proof.
+        assert_eq!(s.compute_state_root().unwrap(), merkle::EMPTY_ROOT);
+        assert!(s
+            .state_proof(&Pubkey::from_seed(b"absent"))
+            .unwrap()
+            .is_none());
+
+        let prog = Pubkey::from_seed(b"prog");
+        let keys: Vec<Pubkey> = (0..5).map(|i| Pubkey::from_seed(&[i as u8])).collect();
+        for (i, k) in keys.iter().enumerate() {
+            s.save_account(k, &acct(prog, (i as u64 + 1) * 100))
+                .unwrap();
+        }
+
+        let root = s.compute_state_root().unwrap();
+        assert_ne!(root, merkle::EMPTY_ROOT);
+
+        // Every account has a proof that verifies against the root.
+        for k in &keys {
+            let (proof, r) = s.state_proof(k).unwrap().expect("account present");
+            assert_eq!(r, root, "proof root matches the computed state root");
+            assert!(proof.verify(&root), "inclusion proof verifies");
+            // The proven leaf equals an independent recomputation from stored bytes.
+            let stored = s.load_account(k).unwrap().unwrap();
+            let bytes = borsh::to_vec(&stored).unwrap();
+            assert_eq!(
+                proof.leaf,
+                merkle::leaf_hash(k.as_ref().try_into().unwrap(), &bytes)
+            );
+        }
+
+        // Mutating an account changes the root.
+        s.save_account(&keys[2], &acct(prog, 999)).unwrap();
+        assert_ne!(s.compute_state_root().unwrap(), root);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_anchor_record_roundtrip() {
+        let (s, path) = tmp_state("anchor");
+        assert!(s.latest_anchor().unwrap().is_none());
+        let root_a = [1u8; 32];
+        let root_b = [2u8; 32];
+        s.record_anchor(10, root_a, "btctxid_a").unwrap();
+        s.record_anchor(20, root_b, "btctxid_b").unwrap();
+        let latest = s.latest_anchor().unwrap().unwrap();
+        assert_eq!(latest.slot, 20);
+        assert_eq!(latest.state_root, root_b);
+        assert_eq!(latest.btc_txid, "btctxid_b");
+        // An older slot must not regress the tip.
+        s.record_anchor(15, [3u8; 32], "btctxid_c").unwrap();
+        assert_eq!(s.latest_anchor().unwrap().unwrap().slot, 20);
         let _ = std::fs::remove_file(&path);
     }
 

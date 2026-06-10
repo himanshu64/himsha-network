@@ -10,6 +10,7 @@ pub mod cpi;
 pub mod error;
 pub mod exec;
 pub mod instruction;
+pub mod merkle;
 pub mod owner;
 pub mod pubkey;
 pub mod receipt;

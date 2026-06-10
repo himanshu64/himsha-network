@@ -176,6 +176,36 @@ pub trait HimshaRpc {
     /// Returns `null` when `HIMSHA_THRESHOLD` is unset (single-hot-wallet mode).
     #[method(name = "himsha_getCustodyInfo")]
     async fn get_custody_info(&self) -> RpcResult<Option<CustodyInfo>>;
+
+    /// Merkle inclusion proof that `pubkey`'s account is committed in the current
+    /// state root, plus the latest root anchored to Bitcoin (if any). A client
+    /// verifies the account against a root it trusts from the OP_RETURN anchor.
+    /// Returns `null` if the account does not exist.
+    #[method(name = "himsha_getStateProof")]
+    async fn get_state_proof(&self, pubkey: String) -> RpcResult<Option<StateProof>>;
+}
+
+/// A state-root inclusion proof for one account (see [`crate::state`] and
+/// [`himsha_runtime::merkle`]). The client recomputes the leaf from the account
+/// it holds and walks `siblings` to the `state_root`; if that root equals the
+/// `anchored_state_root` committed in `anchored_btc_txid`, the account is proven
+/// to be in the Bitcoin-anchored state.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StateProof {
+    /// Current Merkle state root (hex) this proof verifies against.
+    pub state_root: String,
+    /// The proven leaf hash (hex) = SHA-256(0x00 ‖ key ‖ account_bytes).
+    pub leaf: String,
+    /// Leaf position among the ordered accounts.
+    pub index: u64,
+    /// Sibling hashes (hex), leaf→root, needed to recompute the root.
+    pub siblings: Vec<String>,
+    /// Slot of the most recently Bitcoin-anchored root, if any.
+    pub anchored_slot: Option<u64>,
+    /// The most recently anchored state root (hex), if any.
+    pub anchored_state_root: Option<String>,
+    /// The OP_RETURN txid committing that anchored root, if any.
+    pub anchored_btc_txid: Option<String>,
 }
 
 /// Threshold-custody settlement configuration (see [`crate::custody`]).

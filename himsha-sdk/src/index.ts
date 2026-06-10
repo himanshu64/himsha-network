@@ -13,6 +13,12 @@ export { RunesProgram }                 from './programs/runes';
 export { MoneyMarketProgram }           from './programs/moneyMarket';
 export { VaultProgram }                 from './programs/vault';
 export { OracleProgram }                from './programs/oracle';
+export {
+  verifyStateProof,
+  verifyAccountInState,
+  leafHash,
+}                                       from './stateProof';
+export type { StateProof }              from './stateProof';
 export type { MintTerms }               from './programs/runes';
 export type {
   AccountInfo,
