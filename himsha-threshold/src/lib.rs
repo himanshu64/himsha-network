@@ -119,11 +119,14 @@ impl Committee {
                 .filter(|(k, _)| **k != *id)
                 .map(|(k, v)| (*k, v.clone()))
                 .collect();
-            let secret = r1_secret.remove(id).unwrap();
+            let secret = r1_secret.remove(id).ok_or(ThresholdError::UnknownSigner)?;
             let (sec2, outgoing) = dkg::part2(secret, &others)?;
             r2_secret.insert(*id, sec2);
             for (recipient, pkg) in outgoing {
-                r2_inbox.get_mut(&recipient).unwrap().insert(*id, pkg);
+                r2_inbox
+                    .get_mut(&recipient)
+                    .ok_or(ThresholdError::UnknownSigner)?
+                    .insert(*id, pkg);
             }
         }
 
@@ -144,7 +147,7 @@ impl Committee {
         Ok(Self {
             threshold,
             key_packages,
-            pubkeys: pubkeys.expect("at least one participant"),
+            pubkeys: pubkeys.ok_or(ThresholdError::NotEnoughSigners { needed: 1, got: 0 })?,
         })
     }
 

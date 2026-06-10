@@ -174,23 +174,6 @@ impl From<&AccountInfo> for StoredAccount {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn writable_account_can_be_written() {
-        let mut a = AccountInfo::new(Pubkey::default(), Pubkey::default(), 0, 0);
-        assert!(a.write_data(&42u64).is_ok());
-    }
-
-    #[test]
-    fn readonly_account_write_is_rejected() {
-        let mut a = AccountInfo::new(Pubkey::default(), Pubkey::default(), 0, 0).as_readonly();
-        assert_eq!(a.write_data(&42u64), Err(ProgramError::NotWritable));
-    }
-}
-
 impl StoredAccount {
     pub fn into_account(self, key: Pubkey) -> AccountInfo {
         AccountInfo {
@@ -206,5 +189,22 @@ impl StoredAccount {
                 .zip(self.utxo_vout)
                 .map(|(txid, vout)| UtxoMeta { txid, vout }),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn writable_account_can_be_written() {
+        let mut a = AccountInfo::new(Pubkey::default(), Pubkey::default(), 0, 0);
+        assert!(a.write_data(&42u64).is_ok());
+    }
+
+    #[test]
+    fn readonly_account_write_is_rejected() {
+        let mut a = AccountInfo::new(Pubkey::default(), Pubkey::default(), 0, 0).as_readonly();
+        assert_eq!(a.write_data(&42u64), Err(ProgramError::NotWritable));
     }
 }
