@@ -96,6 +96,12 @@ impl Executor {
                 accounts.push(account);
             }
 
+            // Reject an instruction that lists the same account writable twice —
+            // otherwise a program (e.g. a token Transfer with source == dest) sees
+            // two independent copies and last-write-wins inflates the balance.
+            himsha_runtime::account::reject_duplicate_writable(&accounts)
+                .map_err(|e| ExecError::new(-32002, e.to_string()))?;
+
             let input = ExecutionInput {
                 accounts,
                 instruction_data: instr.data.clone(),
@@ -282,6 +288,25 @@ mod tests {
         exec.apply(&tx, Mode::Commit).await.unwrap();
         assert_eq!(state.load_account(&from).unwrap().unwrap().lamports, 750);
         assert_eq!(state.load_account(&to).unwrap().unwrap().lamports, 250);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[tokio::test]
+    async fn self_transfer_is_rejected_and_balance_unchanged() {
+        // P0: a Transfer with source == destination lists the same account writable
+        // twice. Without the runtime guard the program debits one copy and credits
+        // the other from the same balance, last-write-wins inflating the balance.
+        // The executor must reject the instruction before running it.
+        let (exec, state, path) = tmp_executor("selftransfer");
+        let acct = Pubkey::from_seed(b"selfpayer");
+        fund(&state, &acct, 1_000);
+        let tx = transfer_tx(acct, acct, 250); // from == to
+
+        let err = exec.apply(&tx, Mode::Commit).await.unwrap_err();
+        assert_eq!(err.code, -32002);
+        assert!(err.message.contains("writable"), "got: {}", err.message);
+        // Balance is exactly unchanged — not inflated by 250.
+        assert_eq!(state.load_account(&acct).unwrap().unwrap().lamports, 1_000);
         let _ = std::fs::remove_file(&path);
     }
 

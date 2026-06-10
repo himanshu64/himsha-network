@@ -15,3 +15,7 @@ secret.properties
 # Local node data
 *.redb
 data/
+
+# Dart
+.dart_tool/
+pubspec.lock

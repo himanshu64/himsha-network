@@ -118,6 +118,12 @@ where
     )?;
 
     let mut window: Vec<AccountInfo> = indices.iter().map(|&i| accounts[i].clone()).collect();
+
+    // A window that names the same parent account writable in two slots would let
+    // the callee debit one copy and credit the other from the same balance, and
+    // the last write back wins — minting balance from nothing. Reject it.
+    crate::account::reject_duplicate_writable(&window)?;
+
     for &w in signer_window_indices {
         if let Some(a) = window.get_mut(w) {
             a.is_signer = true;
@@ -178,6 +184,21 @@ mod tests {
         // Untouched accounts stay put.
         assert_eq!(accounts[1].lamports, 0);
         assert_eq!(accounts[3].data[0], 0);
+    }
+
+    #[test]
+    fn duplicate_writable_window_index_errors() {
+        // Passing the same parent index twice yields a window with the same key
+        // writable in two slots — must be rejected before the callee runs, and the
+        // parent must be left untouched.
+        let mut accounts = vec![acc("a"), acc("b")];
+        let before = accounts[0].lamports;
+        let r = invoke_indexed(&mut accounts, &[0, 0], &[0x42], &callee_id(), callee);
+        assert_eq!(r, Err(ProgramError::DuplicateWritableAccount));
+        assert_eq!(
+            accounts[0].lamports, before,
+            "parent untouched after rejection"
+        );
     }
 
     #[test]

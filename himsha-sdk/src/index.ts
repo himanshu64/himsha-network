@@ -4,7 +4,7 @@
 
 export { HimshaPublicKey, PROGRAM_IDS }    from './pubkey';
 export { HimshaConnection }                from './connection';
-export type { SignatureStatus }            from './connection';
+export type { SignatureStatus, CustodyInfo } from './connection';
 export { HimshaTransaction, HimshaInstruction, HimshaMessage } from './transaction';
 export { SystemProgram }                from './programs/system';
 export { TokenProgram }                 from './programs/token';

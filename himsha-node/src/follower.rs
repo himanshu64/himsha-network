@@ -331,6 +331,11 @@ impl Follower {
                 accounts.push(acc);
             }
 
+            // Same duplicate-writable guard the primary applies — otherwise an
+            // instruction listing one account writable twice would inflate balance.
+            himsha_runtime::account::reject_duplicate_writable(&accounts)
+                .map_err(|e| anyhow!("duplicate writable account: {e}"))?;
+
             let reg = self.registry.lock().unwrap();
             let executor = ProgramExecutor::new(&reg);
             let input = ExecutionInput {

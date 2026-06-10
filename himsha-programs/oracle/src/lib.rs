@@ -70,6 +70,35 @@ impl PriceFeed {
         self.price != 0 && now.saturating_sub(self.publish_ts) <= max_staleness
     }
 
+    /// True if a submission is still fresh at `now` (non-zero and within the
+    /// staleness window; `max_submission_age == 0` means never expires).
+    fn submission_fresh(&self, s: &Submission, now: u64) -> bool {
+        s.price != 0
+            && (self.max_submission_age == 0
+                || now.saturating_sub(s.publish_ts) <= self.max_submission_age)
+    }
+
+    /// Number of publisher submissions still fresh at `now`.
+    pub fn fresh_count(&self, now: u64) -> usize {
+        self.submissions
+            .iter()
+            .filter(|s| self.submission_fresh(s, now))
+            .count()
+    }
+
+    /// Minimum number of fresh submissions required before an update may move the
+    /// aggregate, derived purely from the *registered* publisher set (no new wire
+    /// field). A single-publisher feed needs only its one print; any multi-publisher
+    /// feed needs at least two fresh peers so no lone publisher can walk the price
+    /// once the others go silent.
+    pub fn fresh_quorum(&self) -> usize {
+        if self.submissions.len() <= 1 {
+            1
+        } else {
+            2
+        }
+    }
+
     /// Median of the submissions still fresh at `now` (`None` if there are none).
     /// Even counts take the lower-middle element — a conservative, deterministic
     /// choice that never fabricates a price no publisher posted.
@@ -77,11 +106,7 @@ impl PriceFeed {
         let mut prices: Vec<u64> = self
             .submissions
             .iter()
-            .filter(|s| {
-                s.price != 0
-                    && (self.max_submission_age == 0
-                        || now.saturating_sub(s.publish_ts) <= self.max_submission_age)
-            })
+            .filter(|s| self.submission_fresh(s, now))
             .map(|s| s.price)
             .collect();
         if prices.is_empty() {
@@ -240,6 +265,17 @@ pub fn process(
                 .ok_or(ProgramError::Unauthorized)?;
             slot.price = price;
             slot.publish_ts = timestamp;
+
+            // Quorum gate: a multi-publisher feed must have at least 2 fresh
+            // submissions before the aggregate moves. Without this, once all peers
+            // go silent a lone publisher could walk the price one max_deviation_bps
+            // step per update with nobody to out-vote it. The fresh submission is
+            // still recorded (so a peer re-printing restores quorum), but the
+            // reported aggregate is *held* at its last good value until quorum.
+            if feed.fresh_count(timestamp) < feed.fresh_quorum() {
+                accounts[0].write_data(&feed)?;
+                return Ok(());
+            }
 
             // Re-aggregate: median of fresh submissions, bounded per step.
             let median = feed
@@ -534,11 +570,59 @@ mod tests {
             0,
         )
         .unwrap();
+        // Two fresh prints reach quorum and set the aggregate.
         publish(&mut accounts, b"oracle-auth", 100, 10);
-        // 200s later only pub-b's print is fresh — the authority's 100 no
-        // longer counts, so the aggregate is pub-b's price alone.
+        publish(&mut accounts, b"pub-b", 90, 12);
+        assert_eq!(feed(&accounts).price, 90); // median(100,90) lower-middle
+
+        // 200s later the authority's print has expired, leaving only pub-b fresh.
+        // A two-publisher feed needs a quorum of 2 fresh submissions, so pub-b
+        // alone may NOT move the aggregate — it is HELD at the last good value.
         publish(&mut accounts, b"pub-b", 130, 210);
-        assert_eq!(feed(&accounts).price, 130);
+        assert_eq!(
+            feed(&accounts).price,
+            90,
+            "lone fresh publisher cannot steer"
+        );
+    }
+
+    #[test]
+    fn test_lone_publisher_cannot_walk_the_price() {
+        // Regression for the lone-publisher steering bug: with a staleness window,
+        // once every peer's print expires, a single remaining publisher must not be
+        // able to walk the aggregate one deviation step at a time.
+        let mut accounts = vec![feed_acct(), authority()];
+        init(&mut accounts, 1_000, 60); // 10% max step, 60s staleness
+        run(
+            &mut accounts,
+            &OracleInstruction::AddPublisher {
+                publisher: Pubkey::from_seed(b"pub-b"),
+            },
+            0,
+        )
+        .unwrap();
+        // Quorum established at price 100.
+        publish(&mut accounts, b"oracle-auth", 100, 10);
+        publish(&mut accounts, b"pub-b", 100, 12);
+        assert_eq!(feed(&accounts).price, 100);
+
+        // Long after, only pub-b is fresh. It tries to nudge the price up 10% per
+        // update — each is held (sub-quorum), so the aggregate never moves.
+        for (ts, p) in [(1_000u64, 110u64), (2_000, 121), (3_000, 133)] {
+            publish(&mut accounts, b"pub-b", p, ts);
+            assert_eq!(feed(&accounts).price, 100, "held while below quorum");
+        }
+    }
+
+    #[test]
+    fn test_single_publisher_feed_still_updates() {
+        // A feed with only the authority registered has quorum 1 and works normally.
+        let mut accounts = vec![feed_acct(), authority()];
+        init(&mut accounts, 0, 60);
+        publish(&mut accounts, b"oracle-auth", 100, 10);
+        assert_eq!(feed(&accounts).price, 100);
+        publish(&mut accounts, b"oracle-auth", 105, 20);
+        assert_eq!(feed(&accounts).price, 105);
     }
 
     // ---- publisher management ----

@@ -150,6 +150,27 @@ impl AccountInfo {
     }
 }
 
+/// Reject an instruction (or CPI window) that lists the same account key in two
+/// slots that are **both writable**. A single program sees two independent
+/// [`AccountInfo`] copies of one on-chain account; debiting one copy and
+/// crediting the other and writing both back is last-write-wins, so a token
+/// `Transfer` with `source == destination` would mint balance out of nothing
+/// (classic self-transfer inflation). Read-only duplicates are harmless and
+/// allowed (e.g. the same account passed twice for inspection).
+pub fn reject_duplicate_writable(accounts: &[AccountInfo]) -> Result<(), ProgramError> {
+    for (i, a) in accounts.iter().enumerate() {
+        if !a.is_writable {
+            continue;
+        }
+        for b in &accounts[i + 1..] {
+            if b.is_writable && b.key == a.key {
+                return Err(ProgramError::DuplicateWritableAccount);
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Compact form stored in redb (avoids storing the key twice).
 #[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
 pub struct StoredAccount {
@@ -206,5 +227,40 @@ mod tests {
     fn readonly_account_write_is_rejected() {
         let mut a = AccountInfo::new(Pubkey::default(), Pubkey::default(), 0, 0).as_readonly();
         assert_eq!(a.write_data(&42u64), Err(ProgramError::NotWritable));
+    }
+
+    #[test]
+    fn duplicate_writable_keys_rejected() {
+        let dup = Pubkey::from_seed(b"dup");
+        let other = Pubkey::from_seed(b"other");
+        // Same key, both writable → rejected (self-transfer inflation guard).
+        let accounts = vec![
+            AccountInfo::new(dup, Pubkey::default(), 0, 0),
+            AccountInfo::new(dup, Pubkey::default(), 0, 0),
+            AccountInfo::new(other, Pubkey::default(), 0, 0),
+        ];
+        assert_eq!(
+            reject_duplicate_writable(&accounts),
+            Err(ProgramError::DuplicateWritableAccount)
+        );
+    }
+
+    #[test]
+    fn distinct_writable_and_readonly_duplicates_allowed() {
+        let dup = Pubkey::from_seed(b"dup");
+        let other = Pubkey::from_seed(b"other");
+        // Distinct writable keys are fine.
+        let distinct = vec![
+            AccountInfo::new(dup, Pubkey::default(), 0, 0),
+            AccountInfo::new(other, Pubkey::default(), 0, 0),
+        ];
+        assert!(reject_duplicate_writable(&distinct).is_ok());
+
+        // A read-only duplicate of a writable account is allowed.
+        let ro_dup = vec![
+            AccountInfo::new(dup, Pubkey::default(), 0, 0),
+            AccountInfo::new(dup, Pubkey::default(), 0, 0).as_readonly(),
+        ];
+        assert!(reject_duplicate_writable(&ro_dup).is_ok());
     }
 }

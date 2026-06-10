@@ -107,13 +107,12 @@ impl BlockProducer {
                             hex::encode(txid),
                             e.message
                         );
-                        let _ = self.state.set_tx_status(
-                            &txid,
-                            &TxStatus::Failed {
-                                slot,
-                                error: e.message,
-                            },
-                        );
+                        // Never downgrade a tx that already Succeeded in an earlier
+                        // slot: an identical txid re-submitted and failing later must
+                        // not overwrite its recorded success.
+                        let _ = self
+                            .state
+                            .mark_failed_unless_succeeded(&txid, slot, e.message);
                     }
                 }
             }
@@ -139,7 +138,7 @@ impl BlockProducer {
                 }
                 let _ = self
                     .state
-                    .set_tx_status(&txid, &crate::state::TxStatus::Succeeded { slot });
+                    .set_tx_status(&txid, &TxStatus::Succeeded { slot });
             }
             info!(
                 "produced block slot={slot} txs={} state_root={}",

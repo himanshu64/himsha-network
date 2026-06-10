@@ -340,6 +340,23 @@ impl NodeState {
         Ok(())
     }
 
+    /// Mark a transaction `Failed`, but never downgrade one that already
+    /// `Succeeded` in an earlier slot. A txid that committed before and is
+    /// re-submitted (and fails) later keeps its recorded success. Returns `true`
+    /// if the failure was recorded, `false` if a prior success was preserved.
+    pub fn mark_failed_unless_succeeded(
+        &self,
+        txid: &[u8; 32],
+        slot: u64,
+        error: String,
+    ) -> Result<bool> {
+        if matches!(self.get_tx_status(txid)?, Some(TxStatus::Succeeded { .. })) {
+            return Ok(false);
+        }
+        self.set_tx_status(txid, &TxStatus::Failed { slot, error })?;
+        Ok(true)
+    }
+
     /// Fetch a transaction's recorded execution status, if any.
     pub fn get_tx_status(&self, txid: &[u8; 32]) -> Result<Option<TxStatus>> {
         let bytes = Self::read_bytes(&self.db, TX_STATUS, txid.as_slice())?;
@@ -671,6 +688,39 @@ mod tests {
             }
             other => panic!("expected Failed, got {other:?}"),
         }
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_failed_does_not_downgrade_succeeded() {
+        let (s, path) = tmp_state("nodowngrade");
+        let txid = [7u8; 32];
+
+        // A tx that succeeded in slot 3.
+        s.set_tx_status(&txid, &TxStatus::Succeeded { slot: 3 })
+            .unwrap();
+
+        // Re-submitted and failing later in slot 9 must NOT overwrite the success.
+        let recorded = s
+            .mark_failed_unless_succeeded(&txid, 9, "insufficient funds".into())
+            .unwrap();
+        assert!(!recorded, "a prior success is preserved");
+        assert_eq!(
+            s.get_tx_status(&txid).unwrap(),
+            Some(TxStatus::Succeeded { slot: 3 })
+        );
+
+        // A tx with no prior success (or Pending) is marked Failed normally.
+        let pending = [8u8; 32];
+        s.set_tx_status(&pending, &TxStatus::Pending).unwrap();
+        let recorded = s
+            .mark_failed_unless_succeeded(&pending, 9, "bad".into())
+            .unwrap();
+        assert!(recorded);
+        assert!(matches!(
+            s.get_tx_status(&pending).unwrap(),
+            Some(TxStatus::Failed { slot: 9, .. })
+        ));
         let _ = std::fs::remove_file(&path);
     }
 

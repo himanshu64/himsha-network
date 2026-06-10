@@ -14,8 +14,10 @@
 //! (`rate = base + slope * utilization`) and a cumulative borrow index; debt
 //! grows over time and is reconciled on every interaction.
 //!
-//! Out of scope for this cut (tracked as a follow-up):
-//!   - liquidation of unhealthy positions → reserved threshold/bonus fields below
+//! Unhealthy positions can be **liquidated** (`MoneyMarketInstruction::Liquidate`):
+//! once a borrower's health crosses the market's liquidation threshold, a
+//! liquidator repays debt and seizes collateral plus the liquidation bonus, capped
+//! per call by the close factor.
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use himsha_oracle_program::PriceFeed;

@@ -250,4 +250,66 @@ void main() {
       expect(ix.data[0], equals(4));
     });
   });
+
+  // ---- State proof (cross-language vector from Rust himsha_runtime::merkle) ----
+  group('StateProof', () {
+    const root =
+        '54eee82002490e070e17b13ed29afff514ac9249c3a76550759097d58c9b0dab';
+
+    // proof for leaf index 2.
+    final proof2 = {
+      'state_root': root,
+      'leaf':
+          'f3ae1a5531bd2bae2efb209184cf11f14e963233167f9d181292ba1e7857cfda',
+      'index': 2,
+      'siblings': [
+        'dbb00c8d0561563563c096b54c39852bb84cd21957bec6e5812c6d5b398b6736',
+        '5acfe6cfb257faedb60069ffd4b9da2b4251cf6054d19df7dd40483f090e2167',
+      ],
+    };
+
+    String hex(List<int> b) =>
+        b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+
+    test('verifyStateProof passes against the correct root', () {
+      expect(verifyStateProof(proof2, root), isTrue);
+    });
+
+    test('verifyStateProof fails against a wrong root', () {
+      const wrong =
+          '00eee82002490e070e17b13ed29afff514ac9249c3a76550759097d58c9b0dab';
+      expect(verifyStateProof(proof2, wrong), isFalse);
+    });
+
+    test('leafHash matches the Rust vector (key[0]=7, bytes=[1,2,3])', () {
+      final key = List<int>.filled(32, 0)..[0] = 7;
+      final h = leafHash(key, [1, 2, 3]);
+      expect(
+        hex(h),
+        equals(
+            '3be7157c455ae9986535cece016a8df2e1f24c5018a4a49cb4d4d4a31ed28f0f'),
+      );
+    });
+
+    test('verifyAccountInState passes for leaf 2 real account bytes', () {
+      // leaf index 2: key[0]=2, key[1]=0xab, account bytes [2,3,4,5].
+      final key = List<int>.filled(32, 0)
+        ..[0] = 2
+        ..[1] = 0xab;
+      expect(
+        verifyAccountInState(key, [2, 3, 4, 5], proof2, root),
+        isTrue,
+      );
+    });
+
+    test('verifyAccountInState fails for wrong account bytes', () {
+      final key = List<int>.filled(32, 0)
+        ..[0] = 2
+        ..[1] = 0xab;
+      expect(
+        verifyAccountInState(key, [9, 9, 9, 9], proof2, root),
+        isFalse,
+      );
+    });
+  });
 }

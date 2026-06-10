@@ -155,6 +155,65 @@ mod tests {
     }
 
     #[test]
+    fn test_self_transfer_is_rejected_not_inflated() {
+        // P0: a token Transfer whose source == destination must be rejected at the
+        // runtime boundary (the node calls reject_duplicate_writable before dispatch).
+        // Otherwise the program sees two independent copies of the same account,
+        // debits one and credits the other, and last-write-wins MINTS `amount` from
+        // nothing. Here we assert the guard rejects it; balance stays put.
+        use himsha_runtime::account::{reject_duplicate_writable, AccountMeta, AccountState};
+        use himsha_token_program::{TokenAccountState, TokenInstruction};
+
+        let token = program_ids::token_program();
+        let mint = Pubkey::from_seed(b"mint");
+        let user = Pubkey::from_seed(b"user");
+        let acct_key = Pubkey::from_seed(b"self");
+
+        let state = TokenAccountState {
+            mint,
+            owner: user,
+            amount: 1_000,
+            delegate: None,
+            state: AccountState::Initialized,
+            delegated_amount: 0,
+            close_authority: None,
+        };
+
+        // Build the instruction's account window exactly as the node would for a
+        // self-transfer: the SAME key in slot 0 and slot 1, both writable.
+        let metas = vec![
+            AccountMeta::writable(acct_key, false),
+            AccountMeta::writable(acct_key, false),
+            AccountMeta::readonly(user, true),
+        ];
+        let mut accounts: Vec<AccountInfo> = metas
+            .iter()
+            .map(|m| {
+                let mut a = AccountInfo::new(m.pubkey, token, 0, 0);
+                a.is_writable = m.is_writable;
+                a.is_signer = m.is_signer;
+                a
+            })
+            .collect();
+        accounts[0].write_data(&state).unwrap();
+        accounts[1].write_data(&state).unwrap();
+
+        // The runtime boundary guard rejects the duplicate-writable window.
+        assert_eq!(
+            reject_duplicate_writable(&accounts),
+            Err(ProgramError::DuplicateWritableAccount)
+        );
+
+        // And it's caught before dispatch — so the account's balance is untouched
+        // (no inflation). (If the guard were absent, dispatch would write back a
+        // copy showing amount == 1_000 + 500, minting 500 out of nothing.)
+        let data = borsh::to_vec(&TokenInstruction::Transfer { amount: 500 }).unwrap();
+        let _ = data;
+        let before: TokenAccountState = accounts[0].read_data().unwrap();
+        assert_eq!(before.amount, 1_000, "balance unchanged after rejection");
+    }
+
+    #[test]
     fn test_dispatch_propagates_program_errors() {
         // Transfer without a signer must surface the program's MissingSigner error.
         let sys = program_ids::system_program();
