@@ -50,6 +50,12 @@ pub enum ProgramError {
     InsufficientLiquidity,
     #[error("stale or missing price")]
     StalePrice,
+    #[error("write to an account the program does not own")]
+    IllegalOwnerWrite,
+    #[error("price moves more than the feed's deviation bound")]
+    PriceOutOfBounds,
+    #[error("compute budget exhausted")]
+    ComputeExhausted,
 }
 
 impl From<std::io::Error> for ProgramError {

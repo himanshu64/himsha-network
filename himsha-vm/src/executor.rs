@@ -137,6 +137,30 @@ impl<'a> ProgramExecutor<'a> {
             .decode()
             .map_err(|e| NodeError::VmError(e.to_string()))?;
 
+        // The proof shows the program ran — not that it behaved. The guest must
+        // return exactly the account table it was given (same keys, same order),
+        // otherwise a malicious ELF could inject writes to arbitrary accounts.
+        let mut updated = output.updated_accounts;
+        if updated.len() != input.accounts.len()
+            || updated
+                .iter()
+                .zip(&input.accounts)
+                .any(|(out, inp)| out.key != inp.key)
+        {
+            return Err(NodeError::VmError(
+                "program returned a different account table than it was given".into(),
+            ));
+        }
+        // Deployed programs can't CPI, so every change must be directly legal
+        // for the program itself (owner / credit / blank-claim — empty trail).
+        // Built-ins running through the universal guest enforce this in-guest,
+        // CPI-aware; re-checking them here would reject legitimate CPI writes.
+        if !dispatch::is_builtin(program_id) {
+            himsha_runtime::owner::begin_execution();
+            himsha_runtime::owner::validate_writes(program_id, &input.accounts, &mut updated)
+                .map_err(|e| NodeError::VmError(format!("owner gate: {e}")))?;
+        }
+
         let journal_hash: [u8; 32] = Sha256::digest(&receipt.journal.bytes).into();
 
         let exec_receipt = ExecutionReceipt {
@@ -149,7 +173,7 @@ impl<'a> ProgramExecutor<'a> {
 
         Ok(StateTransition {
             receipt: exec_receipt,
-            updated_accounts: output.updated_accounts,
+            updated_accounts: updated,
             new_utxos: anchor_utxos,
             bitcoin_txid: None,
         })

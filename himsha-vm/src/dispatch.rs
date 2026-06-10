@@ -21,7 +21,29 @@ pub fn is_builtin(program_id: &Pubkey) -> bool {
 ///
 /// Returns `Err(ProgramError)` on program failure, mirroring zkVM execution.
 /// Panics-free: every built-in is a pure function over the account slice.
+///
+/// After a successful run the whole account table is owner-gated (see
+/// [`himsha_runtime::owner`]): the program may only have mutated accounts it
+/// owns, claimed blank ones, credited lamports, or carried mutations made by
+/// validated CPI callees. Anything else fails with
+/// [`ProgramError::IllegalOwnerWrite`] and nothing is persisted.
 pub fn dispatch(
+    program_id: &Pubkey,
+    accounts: &mut [AccountInfo],
+    data: &[u8],
+    timestamp: u64,
+) -> Result<(), ProgramError> {
+    // Fresh top-level execution: clear the CPI approval trail and snapshot the
+    // pre-state the owner gate validates against.
+    himsha_runtime::owner::begin_execution();
+    let before: Vec<AccountInfo> = accounts.to_vec();
+
+    run_builtin(program_id, accounts, data, timestamp)?;
+
+    himsha_runtime::owner::validate_writes(program_id, &before, accounts)
+}
+
+fn run_builtin(
     program_id: &Pubkey,
     accounts: &mut [AccountInfo],
     data: &[u8],
@@ -92,6 +114,43 @@ mod tests {
         assert_eq!(
             dispatch(&unknown, &mut accounts, &[0u8], 0),
             Err(ProgramError::Custom(0x4040)),
+        );
+    }
+
+    #[test]
+    fn test_dispatch_rejects_write_to_foreign_owned_account() {
+        // Classic confusion attack: hand the token program an account that holds
+        // valid TokenAccountState bytes but is owned by another program. Without
+        // the owner gate the token program would happily mutate its balance.
+        use himsha_runtime::account::AccountState;
+        use himsha_token_program::{TokenAccountState, TokenInstruction};
+
+        let token = program_ids::token_program();
+        let swap = program_ids::swap_program();
+        let mint = Pubkey::from_seed(b"mint");
+        let user = Pubkey::from_seed(b"user");
+
+        let token_state = |amount: u64| TokenAccountState {
+            mint,
+            owner: user,
+            amount,
+            delegate: None,
+            state: AccountState::Initialized,
+            delegated_amount: 0,
+            close_authority: None,
+        };
+        // src is swap-owned (the fake), dst is genuinely token-owned.
+        let mut src = AccountInfo::new(Pubkey::from_seed(b"fake"), swap, 0, 0);
+        src.write_data(&token_state(1_000)).unwrap();
+        let mut dst = AccountInfo::new(Pubkey::from_seed(b"dst"), token, 0, 0);
+        dst.write_data(&token_state(0)).unwrap();
+        let owner = AccountInfo::new(user, program_ids::system_program(), 0, 0).as_signer();
+
+        let mut accounts = vec![src, dst, owner];
+        let data = borsh::to_vec(&TokenInstruction::Transfer { amount: 500 }).unwrap();
+        assert_eq!(
+            dispatch(&token, &mut accounts, &data, 0),
+            Err(ProgramError::IllegalOwnerWrite)
         );
     }
 

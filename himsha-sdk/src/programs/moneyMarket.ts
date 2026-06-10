@@ -38,16 +38,21 @@ export function initMarket(
   collateralFactorBps:    bigint, // e.g. 7500n = 75% LTV
   liquidationThresholdBps: bigint, // e.g. 8000n
   liquidationBonusBps:    bigint, // e.g. 500n = 5%
+  closeFactorBps:         bigint, // max debt fraction per liquidation (0n = 100%)
   price:                  bigint, // initial seed price, scaled by 1e6
   baseRateBps:            bigint, // annual rate at 0% utilization
   slopeBps:               bigint, // extra annual rate at 100% utilization
+  kinkUtilizationBps:     bigint, // optimal-utilization kink (0n = linear model)
+  jumpSlopeBps:           bigint, // extra annual rate per util above the kink
   maxPriceStalenessSecs:  bigint, // reject prices older than this
 ): HimshaInstruction {
   const data = concat(
     IX.InitMarket,
     u64Le(collateralFactorBps), u64Le(liquidationThresholdBps),
-    u64Le(liquidationBonusBps), u64Le(price),
-    u64Le(baseRateBps), u64Le(slopeBps), u64Le(maxPriceStalenessSecs),
+    u64Le(liquidationBonusBps), u64Le(closeFactorBps), u64Le(price),
+    u64Le(baseRateBps), u64Le(slopeBps),
+    u64Le(kinkUtilizationBps), u64Le(jumpSlopeBps),
+    u64Le(maxPriceStalenessSecs),
   );
   return new HimshaInstruction(
     PROGRAM_IDS.moneyMarket,
