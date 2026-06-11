@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:characters/characters.dart';
 import 'package:crypto/crypto.dart';
 
 const String _alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

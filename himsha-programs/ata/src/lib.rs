@@ -9,6 +9,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use himsha_runtime::{
     account::{AccountInfo, AccountMeta},
+    cpi,
     error::ProgramError,
     instruction::Instruction,
     pubkey::Pubkey,
@@ -80,13 +81,18 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8]) -> Result<(), ProgramE
                 return Ok(());
             }
 
-            // Initialize the token account via token program logic
-            let mut token_accounts = [accounts[1].clone(), accounts[3].clone()];
+            // Initialize the token account via CPI into the token program. The
+            // ATA arrives blank, so the owner gate's first-writer rule hands it
+            // to the token program — exactly where token accounts must live.
             let init_data = borsh::to_vec(&TokenInstruction::InitializeAccount)
                 .map_err(|_| ProgramError::BorshError)?;
-            himsha_token_program::process(&mut token_accounts, &init_data)?;
-
-            accounts[1] = token_accounts[0].clone();
+            cpi::invoke_indexed(
+                accounts,
+                &[1, 3],
+                &init_data,
+                &himsha_runtime::program_ids::token_program(),
+                himsha_token_program::process,
+            )?;
         }
     }
     Ok(())
@@ -155,6 +161,12 @@ mod tests {
         let st: TokenAccountState = accounts[1].read_data().unwrap();
         assert_eq!(st.state, AccountState::Initialized);
         assert_eq!(st.mint, mint);
+        // The owner gate's first-writer rule hands the fresh ATA to the token
+        // program, so subsequent token-program writes to it are legal.
+        assert_eq!(
+            accounts[1].owner,
+            himsha_runtime::program_ids::token_program()
+        );
     }
 
     #[test]

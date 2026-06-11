@@ -341,7 +341,17 @@ fn token_transfer(
 ) -> Result<(), ProgramError> {
     let ix = borsh::to_vec(&TokenInstruction::Transfer { amount })
         .map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_indexed(accounts, &[src, dst, owner], &ix, token_process)
+    cpi::invoke_indexed(
+        accounts,
+        &[src, dst, owner],
+        &ix,
+        &token_pid(),
+        token_process,
+    )
+}
+
+fn token_pid() -> himsha_runtime::pubkey::Pubkey {
+    himsha_runtime::program_ids::token_program()
 }
 
 /// Transfer out of a vault-owned account; the vault signs as authority (window idx 2).
@@ -354,7 +364,14 @@ fn token_transfer_signed(
 ) -> Result<(), ProgramError> {
     let ix = borsh::to_vec(&TokenInstruction::Transfer { amount })
         .map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_signed_indexed(accounts, &[src, dst, owner], &[2], &ix, token_process)
+    cpi::invoke_signed_indexed(
+        accounts,
+        &[src, dst, owner],
+        &[2],
+        &ix,
+        &token_pid(),
+        token_process,
+    )
 }
 
 /// Mint shares; the vault signs as the share-mint authority (window idx 2).
@@ -367,7 +384,14 @@ fn mint_signed(
 ) -> Result<(), ProgramError> {
     let ix = borsh::to_vec(&TokenInstruction::MintTo { amount })
         .map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_signed_indexed(accounts, &[mint, dst, authority], &[2], &ix, token_process)
+    cpi::invoke_signed_indexed(
+        accounts,
+        &[mint, dst, authority],
+        &[2],
+        &ix,
+        &token_pid(),
+        token_process,
+    )
 }
 
 fn burn(
@@ -379,7 +403,13 @@ fn burn(
 ) -> Result<(), ProgramError> {
     let ix =
         borsh::to_vec(&TokenInstruction::Burn { amount }).map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_indexed(accounts, &[token, mint, owner], &ix, token_process)
+    cpi::invoke_indexed(
+        accounts,
+        &[token, mint, owner],
+        &ix,
+        &token_pid(),
+        token_process,
+    )
 }
 
 /// CPI into the money market's lender side. `idx` maps the vault's accounts onto the
@@ -394,9 +424,14 @@ fn mm_liquidity(
     timestamp: u64,
 ) -> Result<(), ProgramError> {
     let data = borsh::to_vec(ix).map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_signed_indexed(accounts, &idx, &[4], &data, |a, d| {
-        mm_process(a, d, timestamp)
-    })
+    cpi::invoke_signed_indexed(
+        accounts,
+        &idx,
+        &[4],
+        &data,
+        &himsha_runtime::program_ids::money_market_program(),
+        |a, d| mm_process(a, d, timestamp),
+    )
 }
 
 /// Current lender-share balance recorded in a money-market lender-position account.
@@ -404,6 +439,27 @@ fn read_lender_shares(acc: &AccountInfo) -> u64 {
     acc.read_data::<LenderPosition>()
         .map(|p| p.shares)
         .unwrap_or(0)
+}
+
+/// Live net asset value: the idle asset-vault balance (`accounts[2]`) plus the
+/// current redeemable value of the vault's money-market lender shares, read off
+/// the market at `accounts[6]`. This is the *trustworthy* NAV — every input is
+/// on-chain, so a keeper cannot inflate it; `Report` only books it, it doesn't
+/// originate it.
+///
+/// Falls back to the cached `total_assets` when the vault holds no lender shares
+/// or the optional market account wasn't supplied. Used by both `Deposit` and
+/// `Withdraw` so the two price symmetrically off the same basis — otherwise
+/// yield accrued since the last `Report` would dilute one side.
+fn live_nav(vault: &VaultState, accounts: &[AccountInfo]) -> Result<u64, ProgramError> {
+    if vault.lender_shares > 0 && accounts.len() >= 7 {
+        let market: MarketState = accounts[6].read_data()?;
+        balance(&accounts[2])?
+            .checked_add(lender_share_value(&market, vault.lender_shares))
+            .ok_or(ProgramError::Overflow)
+    } else {
+        Ok(vault.total_assets)
+    }
 }
 
 // ---- processing ----
@@ -459,14 +515,7 @@ pub fn process(
             // Using the stale cache would mint too many shares and dilute existing
             // holders of that unreported yield. Requires the optional market account;
             // falls back to the cache when the vault holds no lender shares.
-            let nav_basis = if vault.lender_shares > 0 && accounts.len() >= 7 {
-                let market: MarketState = accounts[6].read_data()?;
-                balance(&accounts[2])?
-                    .checked_add(lender_share_value(&market, vault.lender_shares))
-                    .ok_or(ProgramError::Overflow)?
-            } else {
-                vault.total_assets
-            };
+            let nav_basis = live_nav(&vault, accounts)?;
 
             // shares to credit the user, and the total supply delta (bootstrap locks MIN_SHARES).
             let (user_shares, supply_delta) = if vault.total_shares == 0 {
@@ -508,8 +557,14 @@ pub fn process(
                 return Err(ProgramError::NotInitialized);
             }
 
+            // Price the redemption off the *live* NAV (same basis as Deposit), so a
+            // withdrawer is paid their share of yield accrued since the last Report
+            // rather than the stale cache. Computed before any auto-undeploy below —
+            // NAV is invariant to moving funds deployed→idle. Falls back to the cache
+            // (nav_basis == total_assets) when no market account is supplied.
+            let nav_basis = live_nav(&vault, accounts)?;
             let assets_out =
-                ((shares as u128) * vault.total_assets as u128 / vault.total_shares as u128) as u64;
+                ((shares as u128) * nav_basis as u128 / vault.total_shares as u128) as u64;
             if assets_out < min_assets {
                 return Err(ProgramError::SlippageExceeded);
             }
@@ -536,8 +591,9 @@ pub fn process(
             burn(accounts, 3, 4, 5, shares)?; // user_shares burned by user
             token_transfer_signed(accounts, 2, 1, 0, assets_out)?; // asset_vault -> user_asset
 
-            vault.total_assets = vault
-                .total_assets
+            // Reconcile the cache to live NAV minus what just left — this books any
+            // previously-unreported yield into the remaining holders' share price.
+            vault.total_assets = nav_basis
                 .checked_sub(assets_out)
                 .ok_or(ProgramError::InsufficientFunds)?;
             vault.total_shares = vault
@@ -994,6 +1050,7 @@ mod tests {
             collateral_factor_bps: 7500,
             liquidation_threshold_bps: 8000,
             liquidation_bonus_bps: 500,
+            close_factor_bps: 0,
             price: PRICE_SCALE as u64,
             oracle_feed: Pubkey::from_seed(b"mm-feed"),
             price_updated_at: 0,
@@ -1004,6 +1061,8 @@ mod tests {
             total_lender_shares,
             base_rate_bps: 0,
             slope_bps: 0, // no live accrual in these tests
+            kink_utilization_bps: 0,
+            jump_slope_bps: 0,
             borrow_index: INDEX_SCALE,
             last_accrual_ts: 0,
             is_initialized: true,
@@ -1261,6 +1320,46 @@ mod tests {
         assert_eq!(v.lender_shares, 500); // 600 - 100 burned
         assert_eq!(v.total_shares, 500);
         assert_eq!(v.total_assets, 500);
+    }
+
+    #[test]
+    fn test_withdraw_reprices_off_live_nav() {
+        // Cached total_assets is a stale 1_000, all of it deployed. The vault's 1_000
+        // lender shares are now worth 1_200 (unreported yield). A holder redeeming 500
+        // of 1_000 vault shares must receive 600 — their half of the *live* 1_200 NAV,
+        // NOT 500 (what the stale cache would pay) — symmetric with deposit pricing.
+        // Idle is 0, so the payout auto-undeploys from the market.
+        let mut accounts = vec![
+            vault_acct_shares(1_000, 1_000, 1_000), // [0] cached 1_000 (stale)
+            token_acct("user-asset", asset_mint(), user_k(), 0), // [1]
+            token_acct("asset-vault", asset_mint(), vault_k(), 0), // [2] idle 0
+            token_acct("user-shares", share_mint_k(), user_k(), 500), // [3]
+            {
+                let mut m = share_mint_acct(1_000);
+                m.key = share_mint_k();
+                m
+            }, // [4]
+            AccountInfo::new(user_k(), prog(), 0, 0).as_signer(), // [5]
+            mm_market_acct(0, 1_200, 1_000),        // [6] 1_000 shares worth 1_200
+            vault_lender_pos(1_000),                // [7]
+            token_acct("mm-borrow-vault", asset_mint(), mm_market_k(), 1_200), // [8]
+        ];
+        process(
+            &mut accounts,
+            &borsh::to_vec(&VaultInstruction::Withdraw {
+                shares: 500,
+                min_assets: 1,
+            })
+            .unwrap(),
+            0,
+        )
+        .unwrap();
+        assert_eq!(bal(&accounts[1]), 600); // half of the live 1_200 NAV, not stale 500
+        let v: VaultState = accounts[0].read_data().unwrap();
+        assert_eq!(v.total_shares, 500);
+        // Remaining holder keeps the rest of the live NAV: 1_200 - 600 = 600.
+        assert_eq!(v.total_assets, 600);
+        assert_eq!(v.lender_shares, 500); // 600-worth of shares redeemed at 1.2 each
     }
 
     #[test]

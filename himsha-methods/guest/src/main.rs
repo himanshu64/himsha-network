@@ -61,8 +61,14 @@ pub fn main() {
     let mut accounts = input.accounts;
     // A program error makes the proof fail — exactly the desired behavior: an
     // invalid state transition simply has no valid receipt.
+    himsha_runtime::owner::begin_execution();
+    let before = accounts.clone();
     dispatch(&program_id, &mut accounts, &input.instruction_data, input.timestamp)
         .expect("program execution failed");
+    // Owner gate (mirrors himsha-vm::dispatch): an illegal cross-owner write
+    // aborts the proof, so no receipt can attest to it.
+    himsha_runtime::owner::validate_writes(&program_id, &before, &mut accounts)
+        .expect("illegal owner write");
 
     let output = ExecutionOutput {
         updated_accounts: accounts,

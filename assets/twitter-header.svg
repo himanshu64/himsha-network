@@ -1,0 +1,97 @@
+<svg width="1500" height="500" viewBox="0 0 1500 500" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HIMSHA Network — ZK-proven Bitcoin programmability">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1500" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A0D14"/>
+      <stop offset="0.5" stop-color="#0E1320"/>
+      <stop offset="1" stop-color="#0A0D14"/>
+    </linearGradient>
+    <linearGradient id="btc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB454"/>
+      <stop offset="1" stop-color="#F7931A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7931A" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#F7931A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C8D2E0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1500" height="500" fill="url(#bg)"/>
+
+  <!-- faint dot grid (corners) -->
+  <g fill="#27324A" opacity="0.5">
+    <circle cx="60" cy="60" r="1.6"/><circle cx="120" cy="60" r="1.6"/><circle cx="180" cy="60" r="1.6"/>
+    <circle cx="60" cy="120" r="1.6"/><circle cx="120" cy="120" r="1.6"/><circle cx="180" cy="120" r="1.6"/>
+    <circle cx="1440" cy="440" r="1.6"/><circle cx="1380" cy="440" r="1.6"/><circle cx="1320" cy="440" r="1.6"/>
+    <circle cx="1440" cy="380" r="1.6"/><circle cx="1380" cy="380" r="1.6"/><circle cx="1320" cy="380" r="1.6"/>
+  </g>
+
+  <!-- proof-flow line: zkVM -> receipt -> Bitcoin -->
+  <g opacity="0.55" stroke="#33405C" stroke-width="2" fill="none">
+    <path d="M 520 250 H 1380" stroke-dasharray="6 8"/>
+  </g>
+
+  <!-- emblem -->
+  <g transform="translate(250,250)">
+    <circle cx="0" cy="0" r="180" fill="url(#glow)"/>
+    <polygon points="0,-138 120,-69 120,69 0,138 -120,69 -120,-69"
+             fill="#0D1322" stroke="url(#btc)" stroke-width="5"/>
+    <polygon points="0,-99 86,-49 86,49 0,99 -86,49 -86,-49"
+             fill="none" stroke="#33405C" stroke-width="3" opacity="0.85"/>
+    <g fill="url(#btc)">
+      <rect x="-31" y="-95" width="18" height="37" rx="4"/>
+      <rect x="13"  y="-95" width="18" height="37" rx="4"/>
+      <rect x="-31" y="58"  width="18" height="37" rx="4"/>
+      <rect x="13"  y="58"  width="18" height="37" rx="4"/>
+      <text x="2" y="57" text-anchor="middle"
+            font-family="'Arial Black', 'Segoe UI', Helvetica, Arial, sans-serif"
+            font-size="174" font-weight="900">B</text>
+    </g>
+    <g transform="translate(90,-90)">
+      <circle cx="0" cy="0" r="40" fill="#16A34A" stroke="#0A0D14" stroke-width="6"/>
+      <path d="M -16 2 L -4 14 L 18 -12" fill="none" stroke="#FFFFFF" stroke-width="8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text x="520" y="220" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="104" font-weight="800" letter-spacing="3" fill="url(#word)">HIMSHA</text>
+  <rect x="524" y="246" width="360" height="5" rx="2.5" fill="url(#btc)"/>
+
+  <!-- tagline -->
+  <text x="524" y="312" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="34" font-weight="600" letter-spacing="1" fill="#C8D2E0">ZK-proven Bitcoin programmability</text>
+  <text x="524" y="356" font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="23" font-weight="400" fill="#7C8AA5">Correctness proven by math &#8212; not validator majority vote.</text>
+
+  <!-- tech chips -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="600">
+    <g transform="translate(524,392)">
+      <rect x="0" y="0" width="118" height="40" rx="20" fill="#11182A" stroke="#1E2636"/>
+      <text x="59" y="26" text-anchor="middle" fill="#F7931A">Rust</text>
+    </g>
+    <g transform="translate(654,392)">
+      <rect x="0" y="0" width="150" height="40" rx="20" fill="#11182A" stroke="#1E2636"/>
+      <text x="75" y="26" text-anchor="middle" fill="#B98BE0">RISC Zero</text>
+    </g>
+    <g transform="translate(816,392)">
+      <rect x="0" y="0" width="150" height="40" rx="20" fill="#11182A" stroke="#1E2636"/>
+      <text x="75" y="26" text-anchor="middle" fill="#F7931A">Bitcoin L1</text>
+    </g>
+    <g transform="translate(978,392)">
+      <rect x="0" y="0" width="160" height="40" rx="20" fill="#11182A" stroke="#1E2636"/>
+      <text x="80" y="26" text-anchor="middle" fill="#5BD6A0">Taproot ZK</text>
+    </g>
+  </g>
+
+  <!-- open-source tag, top right -->
+  <g transform="translate(1230,56)" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="0" y="0" width="210" height="44" rx="22" fill="#11182A" stroke="#1E2636"/>
+    <circle cx="30" cy="22" r="7" fill="#16A34A"/>
+    <text x="48" y="29" font-size="20" font-weight="600" fill="#C8D2E0">Open Source &#183; MIT</text>
+  </g>
+</svg>

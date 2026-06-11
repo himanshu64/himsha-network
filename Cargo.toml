@@ -24,6 +24,11 @@ exclude = [
     "himsha-methods",
 ]
 
+[workspace.package]
+# Verified MSRV: the dependency graph requires 1.87 (wit-bindgen/wasip*), and the
+# workspace compiles cleanly on it. CI gates this with a dedicated MSRV job.
+rust-version = "1.87"
+
 [workspace.dependencies]
 himsha-runtime = { path = "himsha-runtime" }
 borsh        = { version = "1.5", features = ["derive"] }

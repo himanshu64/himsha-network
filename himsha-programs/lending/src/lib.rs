@@ -509,12 +509,12 @@ mod tests {
     }
 
     /// Init a collection, place a bid, and accept it (loan starts at `start`).
-    fn open_loan(accounts: &mut Vec<AccountInfo>, start: u64) {
+    fn open_loan(accounts: &mut [AccountInfo], start: u64) {
         open_loan_at(accounts, start, 0);
     }
 
     /// Like `open_loan`, but with an explicit flat interest rate (bps).
-    fn open_loan_at(accounts: &mut Vec<AccountInfo>, start: u64, interest_rate_bps: u64) {
+    fn open_loan_at(accounts: &mut [AccountInfo], start: u64, interest_rate_bps: u64) {
         run(
             accounts,
             &LendingInstruction::InitCollection {

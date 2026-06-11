@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { HimshaPublicKey } from './pubkey';
 import { HimshaTransaction } from './transaction';
+import { StateProof, verifyAccountInState } from './stateProof';
 
 interface RpcRequest {
   jsonrpc: '2.0';
@@ -45,6 +46,44 @@ export interface NodeStats {
   transactions: number;
   tip_slot: number;
   programs: number;
+}
+
+/** Execution status of a submitted transaction (himsha_getSignatureStatus). */
+export interface SignatureStatus {
+  status: 'pending' | 'succeeded' | 'failed';
+  slot?: number | null;
+  error?: string | null;
+}
+
+/** Threshold-custody settlement configuration (himsha_getCustodyInfo). */
+export interface CustodyInfo {
+  /** Signatures required to settle. */
+  threshold: number;
+  /** Total committee members. */
+  total: number;
+  /** 32-byte x-only group key (hex) — the Taproot output key. */
+  groupKey: string;
+  /** P2TR address controlled by the committee; fund this to give it custody. */
+  address: string;
+}
+
+/** On-wire (snake_case) shape of himsha_getStateProof. */
+interface WireStateProof {
+  state_root: string;
+  leaf: string;
+  index: number;
+  siblings: string[];
+  anchored_slot?: number | null;
+  anchored_state_root?: string | null;
+  anchored_btc_txid?: string | null;
+}
+
+/** On-wire (snake_case) shape of himsha_getCustodyInfo. */
+interface WireCustodyInfo {
+  threshold: number;
+  total: number;
+  group_key: string;
+  address: string;
 }
 
 type SubscriptionId = number;
@@ -249,6 +288,64 @@ export class HimshaConnection {
     return this.call<NodeStats>('himsha_getStats');
   }
 
+  // ---- State proofs & custody ----
+
+  /**
+   * Fetch a state-root inclusion proof for an account, or `null` if the account
+   * is not in state. The node returns snake_case fields; this remaps them to the
+   * camelCase {@link StateProof} so the standalone `verify*` helpers can consume
+   * it directly (the node is never trusted — the caller verifies the proof).
+   */
+  async getStateProof(pubkey: HimshaPublicKey | string): Promise<StateProof | null> {
+    const key = typeof pubkey === 'string' ? pubkey : pubkey.toBase58();
+    const wire = await this.call<WireStateProof | null>('himsha_getStateProof', [key]);
+    if (!wire) return null;
+    return {
+      stateRoot:         wire.state_root,
+      leaf:              wire.leaf,
+      index:             wire.index,
+      siblings:          wire.siblings,
+      anchoredSlot:      wire.anchored_slot ?? null,
+      anchoredStateRoot: wire.anchored_state_root ?? null,
+      anchoredBtcTxid:   wire.anchored_btc_txid ?? null,
+    };
+  }
+
+  /**
+   * Fetch the node's threshold-custody settlement config, or `null` if custody
+   * is not configured. Remaps the snake_case wire shape to {@link CustodyInfo}.
+   */
+  async getCustodyInfo(): Promise<CustodyInfo | null> {
+    const wire = await this.call<WireCustodyInfo | null>('himsha_getCustodyInfo');
+    if (!wire) return null;
+    return {
+      threshold: wire.threshold,
+      total:     wire.total,
+      groupKey:  wire.group_key,
+      address:   wire.address,
+    };
+  }
+
+  /**
+   * Convenience: fetch the state proof for `pubkey` and verify that the caller's
+   * own `accountBytes` are the exact value committed under the proof's state
+   * root. Returns `false` if no proof exists or verification fails.
+   */
+  async getAndVerifyAccountProof(
+    pubkey: HimshaPublicKey | string,
+    accountBytes: Uint8Array,
+  ): Promise<boolean> {
+    const proof = await this.getStateProof(pubkey);
+    if (!proof) return false;
+    const key = typeof pubkey === 'string' ? pubkey : pubkey.toBase58();
+    return verifyAccountInState(
+      new HimshaPublicKey(key).toBytes(),
+      accountBytes,
+      proof,
+      proof.stateRoot,
+    );
+  }
+
   // ---- Transactions ----
 
   /**
@@ -273,22 +370,30 @@ export class HimshaConnection {
   }
 
   /**
-   * Poll until a transaction appears in a block (simple poller).
-   * Returns the slot it was included in.
+   * Execution status of a submitted transaction, or `null` if the node has
+   * never seen the id. Since execution happens at block production (not at
+   * submit time), this is how a client learns the authoritative outcome.
+   */
+  async getSignatureStatus(txId: string): Promise<SignatureStatus | null> {
+    return this.call<SignatureStatus | null>('himsha_getSignatureStatus', [txId]);
+  }
+
+  /**
+   * Poll until a transaction is executed. Resolves with the slot once it
+   * `succeeded`; **rejects with the failure reason** if it `failed` (no more
+   * silent timeouts on a rejected tx); keeps waiting while `pending`.
    */
   async confirmTransaction(txId: string, timeoutMs = 30_000): Promise<bigint> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      const slot = await this.getSlot();
-      // Simple implementation: check the latest block
-      const block = await this.getBlock(slot);
-      if (block) {
-        const found = (block.transactions as Array<{ message: { hash?: string } }>).some(
-          t => t.message?.hash === txId
+      const st = await this.getSignatureStatus(txId);
+      if (st?.status === 'succeeded') return BigInt(st.slot ?? 0);
+      if (st?.status === 'failed') {
+        throw new Error(
+          `Transaction ${txId} failed${st.slot != null ? ` at slot ${st.slot}` : ''}: ${st.error ?? 'unknown error'}`,
         );
-        if (found) return slot;
       }
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 500));
     }
     throw new Error(`Transaction ${txId} not confirmed within ${timeoutMs}ms`);
   }

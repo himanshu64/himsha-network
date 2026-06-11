@@ -2,6 +2,7 @@
 name    = "himsha-node"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "HIMSHA Network node — JSON-RPC API, block production, Bitcoin integration, and state storage"
 
 [[bin]]
@@ -30,8 +31,8 @@ hex         = { workspace = true }
 sha2        = { workspace = true }
 
 # JSON-RPC server
-jsonrpsee = { version = "0.21", features = ["server", "http-client", "macros"] }
-jsonrpsee-types = "0.21"
+jsonrpsee = { version = "0.26", features = ["server", "http-client", "macros"] }
+jsonrpsee-types = "0.26"
 
 # Bitcoin
 bitcoin          = { version = "0.31", features = ["serde"] }
@@ -47,13 +48,13 @@ reqwest = { version = "0.11", features = ["json"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Tower middleware for CORS
-tower-http = { version = "0.4", features = ["cors"] }
-tower      = { version = "0.4" }
+tower-http = { version = "0.6", features = ["cors"] }
+tower      = "0.5"
 hyper      = "0.14"
 
 # Serialization for node state
 bincode = "1"
-http    = "0.2"
+http    = "1"
 
 [dev-dependencies]
 himsha-system-program = { path = "../himsha-programs/system" }

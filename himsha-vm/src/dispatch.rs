@@ -21,7 +21,29 @@ pub fn is_builtin(program_id: &Pubkey) -> bool {
 ///
 /// Returns `Err(ProgramError)` on program failure, mirroring zkVM execution.
 /// Panics-free: every built-in is a pure function over the account slice.
+///
+/// After a successful run the whole account table is owner-gated (see
+/// [`himsha_runtime::owner`]): the program may only have mutated accounts it
+/// owns, claimed blank ones, credited lamports, or carried mutations made by
+/// validated CPI callees. Anything else fails with
+/// [`ProgramError::IllegalOwnerWrite`] and nothing is persisted.
 pub fn dispatch(
+    program_id: &Pubkey,
+    accounts: &mut [AccountInfo],
+    data: &[u8],
+    timestamp: u64,
+) -> Result<(), ProgramError> {
+    // Fresh top-level execution: clear the CPI approval trail and snapshot the
+    // pre-state the owner gate validates against.
+    himsha_runtime::owner::begin_execution();
+    let before: Vec<AccountInfo> = accounts.to_vec();
+
+    run_builtin(program_id, accounts, data, timestamp)?;
+
+    himsha_runtime::owner::validate_writes(program_id, &before, accounts)
+}
+
+fn run_builtin(
     program_id: &Pubkey,
     accounts: &mut [AccountInfo],
     data: &[u8],
@@ -93,6 +115,102 @@ mod tests {
             dispatch(&unknown, &mut accounts, &[0u8], 0),
             Err(ProgramError::Custom(0x4040)),
         );
+    }
+
+    #[test]
+    fn test_dispatch_rejects_write_to_foreign_owned_account() {
+        // Classic confusion attack: hand the token program an account that holds
+        // valid TokenAccountState bytes but is owned by another program. Without
+        // the owner gate the token program would happily mutate its balance.
+        use himsha_runtime::account::AccountState;
+        use himsha_token_program::{TokenAccountState, TokenInstruction};
+
+        let token = program_ids::token_program();
+        let swap = program_ids::swap_program();
+        let mint = Pubkey::from_seed(b"mint");
+        let user = Pubkey::from_seed(b"user");
+
+        let token_state = |amount: u64| TokenAccountState {
+            mint,
+            owner: user,
+            amount,
+            delegate: None,
+            state: AccountState::Initialized,
+            delegated_amount: 0,
+            close_authority: None,
+        };
+        // src is swap-owned (the fake), dst is genuinely token-owned.
+        let mut src = AccountInfo::new(Pubkey::from_seed(b"fake"), swap, 0, 0);
+        src.write_data(&token_state(1_000)).unwrap();
+        let mut dst = AccountInfo::new(Pubkey::from_seed(b"dst"), token, 0, 0);
+        dst.write_data(&token_state(0)).unwrap();
+        let owner = AccountInfo::new(user, program_ids::system_program(), 0, 0).as_signer();
+
+        let mut accounts = vec![src, dst, owner];
+        let data = borsh::to_vec(&TokenInstruction::Transfer { amount: 500 }).unwrap();
+        assert_eq!(
+            dispatch(&token, &mut accounts, &data, 0),
+            Err(ProgramError::IllegalOwnerWrite)
+        );
+    }
+
+    #[test]
+    fn test_self_transfer_is_rejected_not_inflated() {
+        // P0: a token Transfer whose source == destination must be rejected at the
+        // runtime boundary (the node calls reject_duplicate_writable before dispatch).
+        // Otherwise the program sees two independent copies of the same account,
+        // debits one and credits the other, and last-write-wins MINTS `amount` from
+        // nothing. Here we assert the guard rejects it; balance stays put.
+        use himsha_runtime::account::{reject_duplicate_writable, AccountMeta, AccountState};
+        use himsha_token_program::{TokenAccountState, TokenInstruction};
+
+        let token = program_ids::token_program();
+        let mint = Pubkey::from_seed(b"mint");
+        let user = Pubkey::from_seed(b"user");
+        let acct_key = Pubkey::from_seed(b"self");
+
+        let state = TokenAccountState {
+            mint,
+            owner: user,
+            amount: 1_000,
+            delegate: None,
+            state: AccountState::Initialized,
+            delegated_amount: 0,
+            close_authority: None,
+        };
+
+        // Build the instruction's account window exactly as the node would for a
+        // self-transfer: the SAME key in slot 0 and slot 1, both writable.
+        let metas = [
+            AccountMeta::writable(acct_key, false),
+            AccountMeta::writable(acct_key, false),
+            AccountMeta::readonly(user, true),
+        ];
+        let mut accounts: Vec<AccountInfo> = metas
+            .iter()
+            .map(|m| {
+                let mut a = AccountInfo::new(m.pubkey, token, 0, 0);
+                a.is_writable = m.is_writable;
+                a.is_signer = m.is_signer;
+                a
+            })
+            .collect();
+        accounts[0].write_data(&state).unwrap();
+        accounts[1].write_data(&state).unwrap();
+
+        // The runtime boundary guard rejects the duplicate-writable window.
+        assert_eq!(
+            reject_duplicate_writable(&accounts),
+            Err(ProgramError::DuplicateWritableAccount)
+        );
+
+        // And it's caught before dispatch — so the account's balance is untouched
+        // (no inflation). (If the guard were absent, dispatch would write back a
+        // copy showing amount == 1_000 + 500, minting 500 out of nothing.)
+        let data = borsh::to_vec(&TokenInstruction::Transfer { amount: 500 }).unwrap();
+        let _ = data;
+        let before: TokenAccountState = accounts[0].read_data().unwrap();
+        assert_eq!(before.amount, 1_000, "balance unchanged after rejection");
     }
 
     #[test]

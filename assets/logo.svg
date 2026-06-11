@@ -1,0 +1,54 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HIMSHA Network logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0E1320"/>
+      <stop offset="0.55" stop-color="#0A0D14"/>
+      <stop offset="1" stop-color="#0E1320"/>
+    </linearGradient>
+    <linearGradient id="btc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB454"/>
+      <stop offset="1" stop-color="#F7931A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7931A" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#F7931A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- rounded tile -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#1E2636" stroke-width="3"/>
+
+  <!-- faint dot grid -->
+  <g fill="#27324A" opacity="0.45">
+    <circle cx="70" cy="70" r="2"/><circle cx="120" cy="70" r="2"/><circle cx="170" cy="70" r="2"/>
+    <circle cx="442" cy="442" r="2"/><circle cx="392" cy="442" r="2"/><circle cx="342" cy="442" r="2"/>
+  </g>
+
+  <!-- emblem: hexagon VM + Bitcoin core + ZK tick -->
+  <g transform="translate(256,256)">
+    <circle cx="0" cy="0" r="190" fill="url(#glow)"/>
+    <!-- outer hexagon (the instruction machine / VM) -->
+    <polygon points="0,-150 130,-75 130,75 0,150 -130,75 -130,-75"
+             fill="#0D1322" stroke="url(#btc)" stroke-width="6"/>
+    <!-- inner hexagon ring -->
+    <polygon points="0,-108 93,-54 93,54 0,108 -93,54 -93,-54"
+             fill="none" stroke="#33405C" stroke-width="3.5" opacity="0.85"/>
+    <!-- Bitcoin symbol (vector: B + prongs) -->
+    <g fill="url(#btc)">
+      <rect x="-34" y="-104" width="20" height="40" rx="4"/>
+      <rect x="14"  y="-104" width="20" height="40" rx="4"/>
+      <rect x="-34" y="64"   width="20" height="40" rx="4"/>
+      <rect x="14"  y="64"   width="20" height="40" rx="4"/>
+      <text x="2" y="62" text-anchor="middle"
+            font-family="'Arial Black', 'Segoe UI', Helvetica, Arial, sans-serif"
+            font-size="190" font-weight="900">B</text>
+    </g>
+    <!-- ZK proof badge (verified tick) -->
+    <g transform="translate(98,-98)">
+      <circle cx="0" cy="0" r="44" fill="#16A34A" stroke="#0A0D14" stroke-width="7"/>
+      <path d="M -18 2 L -5 15 L 20 -13" fill="none" stroke="#FFFFFF" stroke-width="8.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

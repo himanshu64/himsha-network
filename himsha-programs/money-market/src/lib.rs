@@ -14,8 +14,10 @@
 //! (`rate = base + slope * utilization`) and a cumulative borrow index; debt
 //! grows over time and is reconciled on every interaction.
 //!
-//! Out of scope for this cut (tracked as a follow-up):
-//!   - liquidation of unhealthy positions → reserved threshold/bonus fields below
+//! Unhealthy positions can be **liquidated** (`MoneyMarketInstruction::Liquidate`):
+//! once a borrower's health crosses the market's liquidation threshold, a
+//! liquidator repays debt and seizes collateral plus the liquidation bonus, capped
+//! per call by the close factor.
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use himsha_oracle_program::PriceFeed;
@@ -51,6 +53,12 @@ pub struct MarketState {
     pub liquidation_threshold_bps: u64,
     /// Extra collateral a liquidator receives, in bps (used by liquidation).
     pub liquidation_bonus_bps: u64,
+    /// Max fraction of a position's debt a *single* liquidation may repay, in
+    /// bps (e.g. 5000 = 50%). Bounds the seize so a marginally-unhealthy
+    /// position can't be fully drained (and over-charged the bonus) in one call;
+    /// repeated liquidations still wind a position all the way down. 0 or
+    /// ≥ `BPS` means "no limit" (100%).
+    pub close_factor_bps: u64,
     /// Price of 1 collateral unit in borrow-asset units, scaled by `PRICE_SCALE`.
     /// Synced from the oracle feed by `SyncPrice` (no longer a static admin value).
     pub price: u64,
@@ -68,11 +76,19 @@ pub struct MarketState {
     /// `shares * (total_cash + total_borrows) / total_lender_shares`, so the claim
     /// grows as borrowers pay interest — this is how the supply side earns yield.
     pub total_lender_shares: u64,
-    // ---- interest-rate model (linear: rate = base + slope * utilization) ----
+    // ---- interest-rate model (kinked linear, Compound/Aave-style) ----
+    // Below the kink: rate = base + slope * utilization.
+    // Above it:       rate += jump_slope * (utilization - kink) — a steep
+    // penalty region that defends the last liquidity in the pool.
     /// Annual borrow rate at 0% utilization, in bps.
     pub base_rate_bps: u64,
     /// Additional annual borrow rate at 100% utilization, in bps.
     pub slope_bps: u64,
+    /// Optimal-utilization point in bps where the jump slope engages
+    /// (0 = no kink; the model stays purely linear).
+    pub kink_utilization_bps: u64,
+    /// Additional annual rate per unit of utilization above the kink, in bps.
+    pub jump_slope_bps: u64,
     /// Cumulative borrow index (scaled by `INDEX_SCALE`); grows with interest.
     pub borrow_index: u128,
     /// Unix timestamp interest was last accrued.
@@ -131,6 +147,19 @@ pub fn seize_collateral(market: &MarketState, repay_amount: u64) -> u128 {
     base * (BPS + market.liquidation_bonus_bps as u128) / BPS
 }
 
+/// The most debt a single liquidation may repay against `debt` under the
+/// market's close factor. `close_factor_bps == 0` (or ≥ 100%) means no limit.
+/// The cap is rounded **up** and floored at 1 so dust positions can still be
+/// fully cleared in one call.
+pub fn max_liquidation_repay(market: &MarketState, debt: u64) -> u64 {
+    let cf = market.close_factor_bps as u128;
+    if cf == 0 || cf >= BPS {
+        return debt;
+    }
+    let capped = ((debt as u128) * cf).div_ceil(BPS) as u64;
+    capped.clamp(1, debt)
+}
+
 /// Reject a price-dependent action when the cached oracle price is missing or
 /// older than the market's staleness window.
 pub fn ensure_fresh_price(market: &MarketState, now: u64) -> Result<(), ProgramError> {
@@ -150,9 +179,16 @@ pub fn utilization_bps(market: &MarketState) -> u128 {
         .unwrap_or(0)
 }
 
-/// Annual borrow rate in bps under the linear model: `base + slope * utilization`.
+/// Annual borrow rate in bps under the kinked model: `base + slope * utilization`,
+/// plus `jump_slope * (utilization - kink)` once utilization passes the kink.
 pub fn borrow_rate_bps(market: &MarketState) -> u128 {
-    market.base_rate_bps as u128 + (market.slope_bps as u128) * utilization_bps(market) / BPS
+    let util = utilization_bps(market);
+    let mut rate = market.base_rate_bps as u128 + (market.slope_bps as u128) * util / BPS;
+    let kink = market.kink_utilization_bps as u128;
+    if kink != 0 && util > kink {
+        rate += (market.jump_slope_bps as u128) * (util - kink) / BPS;
+    }
+    rate
 }
 
 /// Accrue interest into `market` up to `now`, growing the borrow index and
@@ -240,9 +276,12 @@ pub enum MoneyMarketInstruction {
         collateral_factor_bps: u64,
         liquidation_threshold_bps: u64,
         liquidation_bonus_bps: u64,
+        close_factor_bps: u64,
         price: u64,
         base_rate_bps: u64,
         slope_bps: u64,
+        kink_utilization_bps: u64,
+        jump_slope_bps: u64,
         max_price_staleness: u64,
     },
 
@@ -309,9 +348,12 @@ pub fn init_market(
     collateral_factor_bps: u64,
     liquidation_threshold_bps: u64,
     liquidation_bonus_bps: u64,
+    close_factor_bps: u64,
     price: u64,
     base_rate_bps: u64,
     slope_bps: u64,
+    kink_utilization_bps: u64,
+    jump_slope_bps: u64,
     max_price_staleness: u64,
 ) -> Instruction {
     Instruction::with_args(
@@ -329,9 +371,12 @@ pub fn init_market(
             collateral_factor_bps,
             liquidation_threshold_bps,
             liquidation_bonus_bps,
+            close_factor_bps,
             price,
             base_rate_bps,
             slope_bps,
+            kink_utilization_bps,
+            jump_slope_bps,
             max_price_staleness,
         },
     )
@@ -533,7 +578,13 @@ fn transfer(
 ) -> Result<(), ProgramError> {
     let ix = borsh::to_vec(&TokenInstruction::Transfer { amount })
         .map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_indexed(accounts, &[src, dst, owner], &ix, token_process)
+    cpi::invoke_indexed(
+        accounts,
+        &[src, dst, owner],
+        &ix,
+        &himsha_runtime::program_ids::token_program(),
+        token_process,
+    )
 }
 
 /// Transfer out of a vault the market controls. The `owner` account is the
@@ -547,7 +598,14 @@ fn transfer_signed(
 ) -> Result<(), ProgramError> {
     let ix = borsh::to_vec(&TokenInstruction::Transfer { amount })
         .map_err(|_| ProgramError::BorshError)?;
-    cpi::invoke_signed_indexed(accounts, &[src, dst, owner], &[2], &ix, token_process)
+    cpi::invoke_signed_indexed(
+        accounts,
+        &[src, dst, owner],
+        &[2],
+        &ix,
+        &himsha_runtime::program_ids::token_program(),
+        token_process,
+    )
 }
 
 fn load_position(
@@ -595,9 +653,12 @@ pub fn process(
             collateral_factor_bps,
             liquidation_threshold_bps,
             liquidation_bonus_bps,
+            close_factor_bps,
             price,
             base_rate_bps,
             slope_bps,
+            kink_utilization_bps,
+            jump_slope_bps,
             max_price_staleness,
         } => {
             if accounts.len() < 7 {
@@ -605,6 +666,10 @@ pub fn process(
             }
             accounts[5].require_signer()?; // admin must sign
             if collateral_factor_bps > BPS as u64 || liquidation_threshold_bps > BPS as u64 {
+                return Err(ProgramError::InvalidInstruction);
+            }
+            // The kink and close factor are fractions — neither can exceed 100%.
+            if kink_utilization_bps > BPS as u64 || close_factor_bps > BPS as u64 {
                 return Err(ProgramError::InvalidInstruction);
             }
             // Collateral factor must not exceed the liquidation threshold.
@@ -628,11 +693,14 @@ pub fn process(
             market.collateral_factor_bps = collateral_factor_bps;
             market.liquidation_threshold_bps = liquidation_threshold_bps;
             market.liquidation_bonus_bps = liquidation_bonus_bps;
+            market.close_factor_bps = close_factor_bps;
             market.price = price; // initial seed; refreshed via SyncPrice
             market.price_updated_at = timestamp;
             market.max_price_staleness = max_price_staleness;
             market.base_rate_bps = base_rate_bps;
             market.slope_bps = slope_bps;
+            market.kink_utilization_bps = kink_utilization_bps;
+            market.jump_slope_bps = jump_slope_bps;
             market.borrow_index = INDEX_SCALE;
             market.last_accrual_ts = timestamp;
             market.is_initialized = true;
@@ -923,9 +991,10 @@ pub fn process(
                 return Err(ProgramError::Unauthorized);
             }
 
-            // Repay at most the outstanding debt; seize the matching collateral
-            // (with bonus), capped at what the position actually holds.
-            let repaid = repay_amount.min(pos.debt);
+            // Repay at most the close-factor-bounded share of the outstanding
+            // debt; seize the matching collateral (with bonus), capped at what
+            // the position actually holds.
+            let repaid = repay_amount.min(max_liquidation_repay(&market, pos.debt));
             if repaid == 0 {
                 return Err(ProgramError::InvalidInstruction);
             }
@@ -1005,6 +1074,7 @@ mod tests {
             collateral_factor_bps: 7500,
             liquidation_threshold_bps: 8000,
             liquidation_bonus_bps: 500,
+            close_factor_bps: 0,       // unlimited in tests unless overridden
             price: PRICE_SCALE as u64, // 1.0
             oracle_feed: Pubkey::from_seed(b"feed"),
             price_updated_at: 0,
@@ -1015,6 +1085,8 @@ mod tests {
             total_lender_shares: 0,
             base_rate_bps,
             slope_bps,
+            kink_utilization_bps: 0,
+            jump_slope_bps: 0,
             borrow_index: INDEX_SCALE,
             last_accrual_ts: 0,
             is_initialized: true,
@@ -1114,9 +1186,12 @@ mod tests {
             collateral_factor_bps: 7500,
             liquidation_threshold_bps: 8000,
             liquidation_bonus_bps: 500,
+            close_factor_bps: 5000,
             price: PRICE_SCALE as u64,
             base_rate_bps: 200,
             slope_bps: 1000,
+            kink_utilization_bps: 8000,
+            jump_slope_bps: 30000,
             max_price_staleness: 600,
         })
         .unwrap();
@@ -1142,9 +1217,12 @@ mod tests {
             collateral_factor_bps: 9000,
             liquidation_threshold_bps: 8000, // cf > threshold
             liquidation_bonus_bps: 500,
+            close_factor_bps: 0,
             price: PRICE_SCALE as u64,
             base_rate_bps: 200,
             slope_bps: 1000,
+            kink_utilization_bps: 0,
+            jump_slope_bps: 0,
             max_price_staleness: 600,
         })
         .unwrap();
@@ -1166,6 +1244,7 @@ mod tests {
             price,
             publish_ts,
             is_initialized: true,
+            ..Default::default()
         })
         .unwrap();
         a
@@ -1371,6 +1450,64 @@ mod tests {
     }
 
     #[test]
+    fn test_kinked_rate_engages_above_optimal_utilization() {
+        // base 200, slope 1000, kink at 80% utilization, jump slope 30000.
+        let kinked = |borrows: u64, cash: u64| {
+            let mut m: MarketState = market_acct_rates(0, borrows, cash, 200, 1000)
+                .read_data()
+                .unwrap();
+            m.kink_utilization_bps = 8000;
+            m.jump_slope_bps = 30_000;
+            m
+        };
+        // 50% util — below the kink, pure linear: 200 + 1000*0.50 = 700.
+        assert_eq!(borrow_rate_bps(&kinked(50, 50)), 700);
+        // Exactly at the kink — jump term still zero: 200 + 1000*0.80 = 1000.
+        assert_eq!(borrow_rate_bps(&kinked(80, 20)), 1_000);
+        // 90% util — 10% past the kink: 200 + 900 + 30000*0.10 = 4100.
+        assert_eq!(borrow_rate_bps(&kinked(90, 10)), 4_100);
+        // 100% util: 200 + 1000 + 30000*0.20 = 7200.
+        assert_eq!(borrow_rate_bps(&kinked(100, 0)), 7_200);
+    }
+
+    #[test]
+    fn test_kink_zero_keeps_model_linear() {
+        // kink 0 disables the jump term even at 100% utilization.
+        let m: MarketState = market_acct_rates(0, 100, 0, 200, 1000).read_data().unwrap();
+        assert_eq!(borrow_rate_bps(&m), 1_200);
+    }
+
+    #[test]
+    fn test_init_market_rejects_kink_above_100_percent() {
+        let mut accounts = vec![
+            AccountInfo::new(market_k(), mm_prog(), 0, 512),
+            AccountInfo::new(mint_c(), mm_prog(), 0, 0),
+            AccountInfo::new(mint_b(), mm_prog(), 0, 0),
+            AccountInfo::new(Pubkey::from_seed(b"vault-c"), mm_prog(), 0, 0),
+            AccountInfo::new(Pubkey::from_seed(b"vault-b"), mm_prog(), 0, 0),
+            user(),
+            AccountInfo::new(Pubkey::from_seed(b"feed"), mm_prog(), 0, 0),
+        ];
+        let ix = borsh::to_vec(&MoneyMarketInstruction::InitMarket {
+            collateral_factor_bps: 7500,
+            liquidation_threshold_bps: 8000,
+            liquidation_bonus_bps: 500,
+            close_factor_bps: 0,
+            price: PRICE_SCALE as u64,
+            base_rate_bps: 200,
+            slope_bps: 1000,
+            kink_utilization_bps: 10_001, // > 100%
+            jump_slope_bps: 30_000,
+            max_price_staleness: 600,
+        })
+        .unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 0),
+            Err(ProgramError::InvalidInstruction)
+        );
+    }
+
+    #[test]
     fn test_interest_accrues_over_one_year() {
         // 700 borrowed, 300 cash, base 2% + slope 10% → 9% APR at 70% util.
         // After 1 year the borrow grows by 9%: 700 -> 763.
@@ -1543,8 +1680,31 @@ mod tests {
         vault_collateral: u64,
         liq_borrow_bal: u64,
     ) -> Vec<AccountInfo> {
+        liquidate_accounts_cf(
+            collateral,
+            debt,
+            vault_cash,
+            vault_collateral,
+            liq_borrow_bal,
+            0,
+        )
+    }
+
+    /// Like [`liquidate_accounts`] but with an explicit close factor (bps).
+    fn liquidate_accounts_cf(
+        collateral: u64,
+        debt: u64,
+        vault_cash: u64,
+        vault_collateral: u64,
+        liq_borrow_bal: u64,
+        close_factor_bps: u64,
+    ) -> Vec<AccountInfo> {
+        let mut market = market_acct(collateral, debt, vault_cash);
+        let mut m: MarketState = market.read_data().unwrap();
+        m.close_factor_bps = close_factor_bps;
+        market.write_data(&m).unwrap();
         vec![
-            market_acct(collateral, debt, vault_cash),
+            market,
             position_acct(collateral, debt),
             token_acct("liq-b", mint_b(), liquidator_k(), liq_borrow_bal),
             token_acct("vault-b", mint_b(), market_k(), vault_cash),
@@ -1623,5 +1783,130 @@ mod tests {
         process(&mut accounts, &ix, SECONDS_PER_YEAR as u64).unwrap();
         // Liquidation succeeded → some collateral was seized.
         assert!(bal(&accounts[4]) > 0);
+    }
+
+    // ---- adversarial liquidation cases ----
+
+    #[test]
+    fn test_close_factor_caps_single_liquidation() {
+        // 850 debt, 50% close factor → at most 425 repayable in one call even if
+        // the liquidator asks for the full 850. Defends a marginally-unhealthy
+        // borrower from being fully wound down (and over-charged the bonus) at once.
+        let mut accounts = liquidate_accounts_cf(1_000, 850, 150, 1_000, 1_000, 5_000);
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate { repay_amount: 850 }).unwrap();
+        process(&mut accounts, &ix, 0).unwrap();
+
+        let pos: Position = accounts[1].read_data().unwrap();
+        assert_eq!(
+            pos.debt, 425,
+            "only half the debt may be repaid in one call"
+        );
+        // Seized = 425 * 1.05 = 446 (rounded down).
+        assert_eq!(bal(&accounts[4]), 446);
+        assert_eq!(pos.collateral, 554);
+    }
+
+    #[test]
+    fn test_close_factor_allows_repeated_liquidation() {
+        // 1000 collateral, 1000 debt (> 800 threshold → liquidatable), 50% close
+        // factor. The cap is per-call, not a permanent floor: a second call can
+        // liquidate again while the position remains unhealthy.
+        let mut accounts = liquidate_accounts_cf(1_000, 1_000, 0, 1_000, 1_000, 5_000);
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate {
+            repay_amount: 1_000,
+        })
+        .unwrap();
+        process(&mut accounts, &ix, 0).unwrap();
+        let pos: Position = accounts[1].read_data().unwrap();
+        assert_eq!(pos.debt, 500); // first call: 50% of 1000
+
+        // Still unhealthy (500 debt > 0.8 * 475 collateral) → a second call lands.
+        let ix2 = borsh::to_vec(&MoneyMarketInstruction::Liquidate {
+            repay_amount: 1_000,
+        })
+        .unwrap();
+        process(&mut accounts, &ix2, 0).unwrap();
+        let pos2: Position = accounts[1].read_data().unwrap();
+        assert_eq!(pos2.debt, 250); // second call: 50% of the remaining 500
+    }
+
+    #[test]
+    fn test_close_factor_dust_position_fully_clearable() {
+        // A dust debt of 1 with a 50% close factor would round to 0 repayable;
+        // the floor-at-1 rule keeps dust positions clearable in one call.
+        assert_eq!(
+            max_liquidation_repay(
+                &MarketState {
+                    close_factor_bps: 5_000,
+                    ..Default::default()
+                },
+                1
+            ),
+            1
+        );
+    }
+
+    #[test]
+    fn test_liquidate_zero_seize_when_repay_rounds_to_dust() {
+        // Price so high that repaying 1 borrow unit seizes 0 collateral units
+        // (rounds down). The seize is 0 but the call still succeeds and burns the
+        // debt — a griefer can only *help* the borrower, never over-seize.
+        let mut accounts = liquidate_accounts(1_000, 900, 100, 1_000, 1_000);
+        let mut m: MarketState = accounts[0].read_data().unwrap();
+        m.price = (PRICE_SCALE as u64) * 1_000; // 1 collateral = 1000 borrow units
+        m.liquidation_bonus_bps = 0;
+        accounts[0].write_data(&m).unwrap();
+        // Re-check liquidatable at the new price: 1000 collateral * 1000 = huge
+        // collateral value, so the position is actually healthy now → rejected.
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate { repay_amount: 1 }).unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 0),
+            Err(ProgramError::Unauthorized)
+        );
+    }
+
+    #[test]
+    fn test_liquidate_zero_repay_rejected() {
+        let mut accounts = liquidate_accounts(1_000, 850, 150, 1_000, 1_000);
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate { repay_amount: 0 }).unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 0),
+            Err(ProgramError::InvalidInstruction)
+        );
+    }
+
+    #[test]
+    fn test_liquidate_rejected_when_price_stale() {
+        // A liquidation must use a fresh price; a stale feed blocks it so nobody
+        // can liquidate on a price that no longer reflects reality.
+        let mut accounts = liquidate_accounts(1_000, 850, 150, 1_000, 1_000);
+        let mut m: MarketState = accounts[0].read_data().unwrap();
+        m.max_price_staleness = 60;
+        m.price_updated_at = 0;
+        accounts[0].write_data(&m).unwrap();
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate { repay_amount: 100 }).unwrap();
+        assert_eq!(
+            process(&mut accounts, &ix, 10_000), // 10000s > 60s window
+            Err(ProgramError::StalePrice)
+        );
+    }
+
+    #[test]
+    fn test_liquidate_bad_debt_leaves_collateral_zero_no_overflow() {
+        // Catastrophically underwater: collateral 100, debt 10_000. The seize is
+        // capped at the 100 collateral; debt is reduced only by what was repaid,
+        // leaving recognized bad debt — and crucially no underflow/overflow.
+        let mut accounts = liquidate_accounts(100, 10_000, 0, 100, 10_000);
+        let ix = borsh::to_vec(&MoneyMarketInstruction::Liquidate {
+            repay_amount: 10_000,
+        })
+        .unwrap();
+        process(&mut accounts, &ix, 0).unwrap();
+        let pos: Position = accounts[1].read_data().unwrap();
+        assert_eq!(pos.collateral, 0);
+        // Repaid 10_000, seized only 100 — the liquidator overpaid (their choice);
+        // the position is left with zero collateral and the remaining bad debt.
+        assert_eq!(pos.debt, 0);
+        assert!(bal(&accounts[5]) == 0); // collateral vault fully drained
     }
 }

@@ -151,23 +151,61 @@ class HimshaConnection {
   Future<String> deployProgram(String elfHex, String imageIdHex) =>
       _call<String>('himsha_deployProgram', [elfHex, imageIdHex]);
 
-  Future<BigInt> confirmTransaction(String txId, {Duration timeout = const Duration(seconds: 30)}) async {
+  /// Execution status of a submitted transaction (snake_case `{status, slot,
+  /// error}`), or `null` if the node has never seen the id. Since execution
+  /// happens at block production (not at submit time), this is how a client
+  /// learns the authoritative outcome.
+  Future<Map<String, dynamic>?> getSignatureStatus(String txId) =>
+      _call<Map<String, dynamic>?>('himsha_getSignatureStatus', [txId]);
+
+  /// Merkle inclusion proof (snake_case `{state_root, leaf, index, siblings,
+  /// anchored_slot, anchored_state_root, anchored_btc_txid}`) that `pubkey`'s
+  /// account is committed in the current state root. Returns `null` if the
+  /// account does not exist.
+  Future<Map<String, dynamic>?> getStateProof(HimshaPublicKey pubkey) =>
+      _call<Map<String, dynamic>?>('himsha_getStateProof', [pubkey.toBase58()]);
+
+  /// Threshold-custody status (snake_case `{threshold, total, group_key,
+  /// address}`): the M-of-N config, the committee group key, and the Taproot
+  /// address to fund. Returns `null` in single-hot-wallet mode.
+  Future<Map<String, dynamic>?> getCustodyInfo() =>
+      _call<Map<String, dynamic>?>('himsha_getCustodyInfo');
+
+  /// Poll until a transaction is executed. Resolves with the slot once it
+  /// `succeeded`; **throws with the failure reason** if it `failed` (no more
+  /// silent timeouts on a rejected tx); keeps waiting while `pending`; times
+  /// out otherwise.
+  Future<BigInt> confirmTransaction(String txId,
+      {Duration timeout = const Duration(seconds: 30)}) async {
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
-      final slot = await getSlot();
-      final block = await getBlock(slot);
-      if (block != null) {
-        final txs = (block['transactions'] as List?) ?? [];
-        for (final t in txs) {
-          if ((t as Map)['id'] == txId) return slot;
-        }
+      final st = await getSignatureStatus(txId);
+      final status = st?['status'] as String?;
+      if (status == 'succeeded') {
+        final slot = st?['slot'];
+        return slot == null ? BigInt.zero : BigInt.parse(slot.toString());
       }
-      await Future.delayed(const Duration(seconds: 1));
+      if (status == 'failed') {
+        final slot = st?['slot'];
+        final at = slot != null ? ' at slot $slot' : '';
+        final reason = (st?['error'] as String?) ?? 'unknown error';
+        throw HimshaTransactionFailedException(
+            'Transaction $txId failed$at: $reason');
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
     }
-    throw TimeoutException('Transaction $txId not confirmed within $timeout', timeout);
+    throw TimeoutException(
+        'Transaction $txId not confirmed within $timeout', timeout);
   }
 
   void close() => _client.close();
+}
+
+class HimshaTransactionFailedException implements Exception {
+  final String message;
+  HimshaTransactionFailedException(this.message);
+  @override
+  String toString() => 'HimshaTransactionFailedException: $message';
 }
 
 class TimeoutException implements Exception {

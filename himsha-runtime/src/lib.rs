@@ -5,10 +5,13 @@
 //! correctness is guaranteed by cryptographic proof — not validator majority.
 
 pub mod account;
+pub mod compute;
 pub mod cpi;
 pub mod error;
 pub mod exec;
 pub mod instruction;
+pub mod merkle;
+pub mod owner;
 pub mod pubkey;
 pub mod receipt;
 pub mod signature;

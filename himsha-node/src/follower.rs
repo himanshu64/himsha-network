@@ -25,7 +25,7 @@ use himsha_vm::{
     registry::ProgramRegistry,
 };
 use serde_json::json;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::{settlement, state::NodeState};
 
@@ -255,7 +255,7 @@ impl Follower {
     /// Catch up from the local slot to the primary's tip.
     pub async fn sync_once(&self) -> Result<()> {
         let target = self.rpc_u64("himsha_getSlot").await?;
-        let mut local = self.state.current_slot();
+        let mut local = self.state.current_slot()?;
         while local < target {
             let next = local + 1;
             match self.fetch_block(next).await? {
@@ -279,6 +279,24 @@ impl Follower {
         for tx in &block.transactions {
             self.apply_transaction(tx, block.timestamp)?;
         }
+        // Trust-minimized replication: after re-executing the block ourselves, our
+        // independently-computed state root must match the one the primary
+        // committed (and anchored to Bitcoin). A mismatch means our replicated
+        // state has diverged — surface it loudly rather than silently drift.
+        if block.state_root != [0u8; 32] {
+            match self.state.compute_state_root() {
+                Ok(local) if local != block.state_root => {
+                    error!(
+                        "STATE ROOT DIVERGENCE at slot {}: local={} primary={}",
+                        block.slot,
+                        hex::encode(local),
+                        hex::encode(block.state_root)
+                    );
+                }
+                Ok(_) => {}
+                Err(e) => error!("compute_state_root at slot {}: {e}", block.slot),
+            }
+        }
         self.state
             .save_block(block.slot, serde_json::to_vec(block)?)
             .map_err(|e| anyhow!("save_block: {e}"))?;
@@ -287,7 +305,7 @@ impl Follower {
             let _ = self.state.index_transaction(&tx.message_hash(), block.slot);
         }
         // Advance the local slot to match (slots are sequential).
-        while self.state.current_slot() < block.slot {
+        while self.state.current_slot()? < block.slot {
             self.state
                 .advance_slot()
                 .map_err(|e| anyhow!("advance_slot: {e}"))?;
@@ -312,6 +330,11 @@ impl Follower {
                 acc.is_writable = meta.is_writable;
                 accounts.push(acc);
             }
+
+            // Same duplicate-writable guard the primary applies — otherwise an
+            // instruction listing one account writable twice would inflate balance.
+            himsha_runtime::account::reject_duplicate_writable(&accounts)
+                .map_err(|e| anyhow!("duplicate writable account: {e}"))?;
 
             let reg = self.registry.lock().unwrap();
             let executor = ProgramExecutor::new(&reg);
@@ -493,7 +516,7 @@ mod tests {
         let to_after = state.load_account(&to).unwrap().unwrap();
         assert_eq!(from_after.lamports, 750);
         assert_eq!(to_after.lamports, 250);
-        assert_eq!(state.current_slot(), 1);
+        assert_eq!(state.current_slot().unwrap(), 1);
 
         let _ = &mut from_acc;
         let _ = std::fs::remove_file(&path);

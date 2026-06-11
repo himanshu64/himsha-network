@@ -139,6 +139,10 @@ pub fn swap(
 
 // ---- processing (runs inside zkVM) ----
 
+fn token_pid() -> Pubkey {
+    himsha_runtime::program_ids::token_program()
+}
+
 pub fn process(accounts: &mut [AccountInfo], data: &[u8]) -> Result<(), ProgramError> {
     let ix = SwapInstruction::try_from_slice(data).map_err(|_| ProgramError::InvalidInstruction)?;
 
@@ -223,14 +227,27 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8]) -> Result<(), ProgramE
             // reserve_in account (the full input, including the fee, stays in the pool).
             let transfer_in = borsh::to_vec(&TokenInstruction::Transfer { amount: amount_in })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[1, 3, 5], &transfer_in, token_process)?;
+            cpi::invoke_indexed(
+                accounts,
+                &[1, 3, 5],
+                &transfer_in,
+                &token_pid(),
+                token_process,
+            )?;
 
             // CPI → token program: send `amount_out` from reserve_out to the user.
             // The pool (accounts[0]) is the reserve authority — it didn't sign the
             // tx, so we sign for it via invoke_signed (window index 2 = the owner).
             let transfer_out = borsh::to_vec(&TokenInstruction::Transfer { amount: amount_out })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_signed_indexed(accounts, &[4, 2, 0], &[2], &transfer_out, token_process)?;
+            cpi::invoke_signed_indexed(
+                accounts,
+                &[4, 2, 0],
+                &[2],
+                &transfer_out,
+                &token_pid(),
+                token_process,
+            )?;
 
             // Sync the cached reserves from the post-transfer token balances so
             // `reserve_a`/`reserve_b` stay consistent with on-chain truth.
@@ -299,16 +316,16 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8]) -> Result<(), ProgramE
             // CPI → token program: pull both sides from the user into the reserves.
             let tx_a = borsh::to_vec(&TokenInstruction::Transfer { amount: deposit_a })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[1, 3, 6], &tx_a, token_process)?;
+            cpi::invoke_indexed(accounts, &[1, 3, 6], &tx_a, &token_pid(), token_process)?;
             let tx_b = borsh::to_vec(&TokenInstruction::Transfer { amount: deposit_b })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[2, 4, 6], &tx_b, token_process)?;
+            cpi::invoke_indexed(accounts, &[2, 4, 6], &tx_b, &token_pid(), token_process)?;
 
             // CPI → token program: mint LP tokens to the depositor.
             // MintTo expects [mint, destination, authority] → [lp_mint, user_lp, user].
             let mint_ix = borsh::to_vec(&TokenInstruction::MintTo { amount: user_lp })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[7, 5, 6], &mint_ix, token_process)?;
+            cpi::invoke_indexed(accounts, &[7, 5, 6], &mint_ix, &token_pid(), token_process)?;
 
             pool.lp_supply = pool
                 .lp_supply
@@ -357,15 +374,15 @@ pub fn process(accounts: &mut [AccountInfo], data: &[u8]) -> Result<(), ProgramE
             // Burn expects [token_account, mint, owner] → [user_lp, lp_mint, user].
             let burn_ix = borsh::to_vec(&TokenInstruction::Burn { amount: lp_amount })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[5, 7, 6], &burn_ix, token_process)?;
+            cpi::invoke_indexed(accounts, &[5, 7, 6], &burn_ix, &token_pid(), token_process)?;
 
             // CPI → token program: pay both sides out of the reserves to the user.
             let tx_a = borsh::to_vec(&TokenInstruction::Transfer { amount: out_a })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[3, 1, 6], &tx_a, token_process)?;
+            cpi::invoke_indexed(accounts, &[3, 1, 6], &tx_a, &token_pid(), token_process)?;
             let tx_b = borsh::to_vec(&TokenInstruction::Transfer { amount: out_b })
                 .map_err(|_| ProgramError::BorshError)?;
-            cpi::invoke_indexed(accounts, &[4, 2, 6], &tx_b, token_process)?;
+            cpi::invoke_indexed(accounts, &[4, 2, 6], &tx_b, &token_pid(), token_process)?;
 
             pool.lp_supply = pool
                 .lp_supply

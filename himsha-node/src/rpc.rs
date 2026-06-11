@@ -170,6 +170,73 @@ pub trait HimshaRpc {
     /// Aggregate chain stats for the explorer overview (indexed counters, no scans).
     #[method(name = "himsha_getStats")]
     async fn get_stats(&self) -> RpcResult<NodeStats>;
+
+    /// Threshold-custody status: the M-of-N config, the committee group key, and
+    /// the Taproot address to fund so the committee can key-spend settlements.
+    /// Returns `null` when `HIMSHA_THRESHOLD` is unset (single-hot-wallet mode).
+    #[method(name = "himsha_getCustodyInfo")]
+    async fn get_custody_info(&self) -> RpcResult<Option<CustodyInfo>>;
+
+    /// Merkle inclusion proof that `pubkey`'s account is committed in the current
+    /// state root, plus the latest root anchored to Bitcoin (if any). A client
+    /// verifies the account against a root it trusts from the OP_RETURN anchor.
+    /// Returns `null` if the account does not exist.
+    #[method(name = "himsha_getStateProof")]
+    async fn get_state_proof(&self, pubkey: String) -> RpcResult<Option<StateProof>>;
+
+    /// Execution status of a submitted transaction (hex id): `pending` while
+    /// queued, then `succeeded`/`failed` once the block producer executes it.
+    /// `null` if the node has never seen the id. Lets a client distinguish a
+    /// failed transaction from one still in flight, instead of a silent timeout.
+    #[method(name = "himsha_getSignatureStatus")]
+    async fn get_signature_status(&self, txid: String) -> RpcResult<Option<SignatureStatus>>;
+}
+
+/// A transaction's execution status (see [`crate::state::TxStatus`]).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignatureStatus {
+    /// One of `pending`, `succeeded`, `failed`.
+    pub status: String,
+    /// Block slot the outcome was recorded in (absent while `pending`).
+    pub slot: Option<u64>,
+    /// Failure reason when `status == "failed"`.
+    pub error: Option<String>,
+}
+
+/// A state-root inclusion proof for one account (see [`crate::state`] and
+/// [`himsha_runtime::merkle`]). The client recomputes the leaf from the account
+/// it holds and walks `siblings` to the `state_root`; if that root equals the
+/// `anchored_state_root` committed in `anchored_btc_txid`, the account is proven
+/// to be in the Bitcoin-anchored state.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StateProof {
+    /// Current Merkle state root (hex) this proof verifies against.
+    pub state_root: String,
+    /// The proven leaf hash (hex) = SHA-256(0x00 ‖ key ‖ account_bytes).
+    pub leaf: String,
+    /// Leaf position among the ordered accounts.
+    pub index: u64,
+    /// Sibling hashes (hex), leaf→root, needed to recompute the root.
+    pub siblings: Vec<String>,
+    /// Slot of the most recently Bitcoin-anchored root, if any.
+    pub anchored_slot: Option<u64>,
+    /// The most recently anchored state root (hex), if any.
+    pub anchored_state_root: Option<String>,
+    /// The OP_RETURN txid committing that anchored root, if any.
+    pub anchored_btc_txid: Option<String>,
+}
+
+/// Threshold-custody settlement configuration (see [`crate::custody`]).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CustodyInfo {
+    /// Signatures required to settle.
+    pub threshold: u16,
+    /// Total committee members.
+    pub total: u16,
+    /// 32-byte x-only group key (hex) — the Taproot output key.
+    pub group_key: String,
+    /// P2TR address controlled by the committee; fund this to give it custody.
+    pub address: String,
 }
 
 /// Indexed counters for the explorer overview.

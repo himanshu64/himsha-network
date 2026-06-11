@@ -2,6 +2,7 @@
 name    = "himsha-vm"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "ZK execution engine for HIMSHA Network — runs programs inside RISC Zero zkVM and produces verifiable receipts"
 
 [dependencies]
