@@ -181,7 +181,7 @@ mod tests {
 
         // Build the instruction's account window exactly as the node would for a
         // self-transfer: the SAME key in slot 0 and slot 1, both writable.
-        let metas = vec![
+        let metas = [
             AccountMeta::writable(acct_key, false),
             AccountMeta::writable(acct_key, false),
             AccountMeta::readonly(user, true),
